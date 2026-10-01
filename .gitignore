@@ -20,3 +20,12 @@ Info_Mac.plist
 /.ffmpegbuild
 /aqtinstall.log
 *.mov
+
+# 测试探针的本地产物
+.rectest/out/
+.rectest/*.log
+.rectest/__pycache__/
+.rectest/moc_*.cpp
+.rectest/muxtest.*
+.rectest/stream.bin
+.rectest/*.exe
