@@ -1,0 +1,17 @@
+{
+    // 使用与命令行构建相同的配置，复用 D:\Qt 与 D:\mingw64 工具链
+    "cmake.generator": "Ninja",
+    "cmake.buildDirectory": "${workspaceFolder}/build",
+    "cmake.configureSettings": {
+        "CMAKE_PREFIX_PATH": "D:/Qt/5.15.2/mingw81_64/lib/cmake/Qt5",
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+    },
+    // 指定 MinGW 工具链（项目已按 MinGW 修好三处兼容问题）
+    "cmake.configureOnOpen": true,
+    "C_Cpp.default.compilerPath": "D:/mingw64/bin/g++.exe",
+    "C_Cpp.default.includePath": [
+        "${workspaceFolder}/QtScrcpy",
+        "${workspaceFolder}/QtScrcpy/QtScrcpyCore/include",
+        "D:/Qt/5.15.2/mingw81_64/include"
+    ]
+}
