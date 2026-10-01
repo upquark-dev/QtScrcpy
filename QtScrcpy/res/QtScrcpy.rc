@@ -1,5 +1,10 @@
 #include "winres.h"
 
+// 将数字版本宏字符串化，兼容 MSVC rc.exe 与 MinGW windres
+#define VER_STR2(x) #x
+#define VER_STR(x) VER_STR2(x)
+#define VERSION_RC_STR VER_STR(VERSION_MAJOR.VERSION_MINOR.VERSION_PATCH)
+
 IDI_ICON1       ICON      "QtScrcpy.ico"
 // GB2312编码的话，在中文系统上打包FileDescription可以显示中文
 // 在github action（英文系统）打包后FileDescription是乱码，utf8编码也不行。。

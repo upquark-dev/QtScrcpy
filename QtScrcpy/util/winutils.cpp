@@ -1,7 +1,9 @@
 #include <QDebug>
 #include <Windows.h>
 #include <dwmapi.h>
+#ifdef _MSC_VER
 #pragma comment(lib, "dwmapi")
+#endif
 
 #include "winutils.h"
 
