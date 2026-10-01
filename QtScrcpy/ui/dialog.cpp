@@ -13,6 +13,7 @@
 #include <QPushButton>
 #include <QRandomGenerator>
 #include <QRegularExpression>
+#include <QSharedPointer>
 #include <QSizePolicy>
 #include <QScreen>
 #include <QStyledItemDelegate>
@@ -20,6 +21,8 @@
 #include <QTime>
 #include <QTimer>
 #include <QVBoxLayout>
+
+#include <functional>
 
 #include "config.h"
 #include "dialog.h"
@@ -67,6 +70,17 @@ Dialog::Dialog(QWidget *parent) : QWidget(parent), ui(new Ui::Widget)
 
     updateBootConfig(true);
 
+    // 音频开关只在「启动服务端」那一刻被读一次（见 on_startServerBtn_clicked），
+    // 服务端进来之后音频通道的开/关就定死了。若用户在已投屏时改这个勾选，
+    // 会话不会有任何变化——表现就是「勾了却还是没声音」，极易误判成功能失效。
+    // 这里明确提示需要重启服务端。
+    connect(ui->audioForwardCheck, &QCheckBox::toggled, this, [this](bool checked) {
+        if (ui->connectedPhoneList->count() > 0) {
+            outLog(tr("audio forwarding is now %1, restart the server to apply")
+                       .arg(checked ? "on" : "off"));
+        }
+    });
+
     // Intel Mac 上如果配置文件遗留 decodeMode=1，强制重置为 0
     // （VideoToolbox 选项在 initUI() 中已被移除）
 #if defined(Q_OS_MACOS) && !defined(__arm64__)
@@ -105,6 +119,9 @@ Dialog::Dialog(QWidget *parent) : QWidget(parent), ui(new Ui::Widget)
             if (args.contains("ifconfig") && args.contains("wlan0")) {
                 getIPbyIp();
             }
+            if (args.contains("locksettings")) {
+                log = tr("clear lock failed (wrong password or unsupported device)");
+            }
             break;
         case qsc::AdbProcess::AER_ERROR_MISSING_BINARY:
             log = "adb not found";
@@ -140,6 +157,8 @@ Dialog::Dialog(QWidget *parent) : QWidget(parent), ui(new Ui::Widget)
                     break;
                 }
                 ui->deviceIpEdt->setEditText(ip);
+            } else if (args.contains("locksettings")) {
+                log = tr("lock screen cleared");
             }
             break;
         }
@@ -218,7 +237,10 @@ void Dialog::initUI()
     ui->cameraFacingBox->addItem(tr("back"));
     ui->cameraFacingBox->addItem(tr("front"));
 
+    // 录制音频轨为 AAC（PCM 实时编码），mp4/mov 都带声音；
+    // mkv 已加入 muxer 支持，也一并放开
     ui->formatBox->addItem("mp4");
+    ui->formatBox->addItem("mov");
     ui->formatBox->addItem("mkv");
 
     ui->lockOrientationBox->addItem(tr("no lock"));
@@ -288,6 +310,8 @@ void Dialog::initUI()
     configTabs->addTab(advancedDisplayPage, tr("Advanced Display"));
     configTabs->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
     ui->verticalLayout_6->addWidget(configTabs);
+    initUnlockUi();
+    ui->verticalLayout_6->addWidget(m_unlockGroup);
     ui->verticalLayout_6->addWidget(ui->adbGroupBox);
     ui->verticalLayout_6->addWidget(ui->outEdit);
 
@@ -400,6 +424,201 @@ void Dialog::updateAdvancedDisplayUi()
     m_cropEdit->setEnabled(!m_flexDisplayCheck->isChecked());
 }
 
+void Dialog::initUnlockUi()
+{
+    m_unlockGroup = new QGroupBox(tr("Unlock"), this);
+    auto *groupLayout = new QVBoxLayout(m_unlockGroup);
+    groupLayout->setSpacing(3);
+    groupLayout->setContentsMargins(5, 5, 5, 5);
+
+    auto *firstRow = new QHBoxLayout();
+    firstRow->setSpacing(3);
+    auto *label = new QLabel(tr("lock password:"), m_unlockGroup);
+    label->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
+
+    m_lockPasswordEdt = new QLineEdit(m_unlockGroup);
+    m_lockPasswordEdt->setEchoMode(QLineEdit::Password);
+    m_lockPasswordEdt->setPlaceholderText(tr("PIN / password of the lock screen"));
+    m_lockPasswordEdt->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Preferred);
+
+    m_unlockBtn = new QPushButton(tr("unlock"), m_unlockGroup);
+    m_unlockBtn->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
+
+    m_clearLockBtn = new QPushButton(tr("clear lock"), m_unlockGroup);
+    m_clearLockBtn->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
+
+    firstRow->addWidget(label);
+    firstRow->addWidget(m_lockPasswordEdt);
+    firstRow->addWidget(m_unlockBtn);
+    firstRow->addWidget(m_clearLockBtn);
+
+    auto *secondRow = new QHBoxLayout();
+    secondRow->setSpacing(6);
+    m_savePasswordCheck = new QCheckBox(tr("save password"), m_unlockGroup);
+    m_autoUnlockCheck = new QCheckBox(tr("auto unlock on connect"), m_unlockGroup);
+    secondRow->addWidget(m_savePasswordCheck);
+    secondRow->addWidget(m_autoUnlockCheck);
+    secondRow->addStretch();
+
+    groupLayout->addLayout(firstRow);
+    groupLayout->addLayout(secondRow);
+
+    connect(m_unlockBtn, &QPushButton::clicked, this, &Dialog::on_unlockBtn_clicked);
+    connect(m_clearLockBtn, &QPushButton::clicked, this, &Dialog::on_clearLockBtn_clicked);
+    connect(m_lockPasswordEdt, &QLineEdit::returnPressed, this, &Dialog::on_unlockBtn_clicked);
+}
+
+void Dialog::on_unlockBtn_clicked()
+{
+    unlockDevice(ui->serialBox->currentText().trimmed());
+}
+
+void Dialog::unlockDevice(const QString &serial)
+{
+    if (serial.isEmpty()) {
+        outLog(tr("no device"));
+        return;
+    }
+    const QString password = m_lockPasswordEdt->text();
+    if (password.isEmpty()) {
+        outLog(tr("please input the lock password first"));
+        return;
+    }
+
+    // 先查询锁屏状态：未锁屏则无需解锁
+    auto *checkAdb = new qsc::AdbProcess(this);
+    connect(checkAdb, &qsc::AdbProcess::adbProcessResult, this,
+            [this, checkAdb, serial, password](qsc::AdbProcess::ADB_EXEC_RESULT cResult) {
+        if (cResult != qsc::AdbProcess::AER_SUCCESS_EXEC && cResult != qsc::AdbProcess::AER_ERROR_EXEC
+                && cResult != qsc::AdbProcess::AER_ERROR_START && cResult != qsc::AdbProcess::AER_ERROR_MISSING_BINARY) {
+            // 忽略非终态信号（如 AER_SUCCESS_START）
+            return;
+        }
+        checkAdb->deleteLater();
+        if (cResult != qsc::AdbProcess::AER_SUCCESS_EXEC) {
+            outLog(tr("query lock state failed"));
+            return;
+        }
+        if (!checkAdb->getStdOut().contains("showing=true")) {
+            // 未锁屏（或查询结果不含该字段），无需解锁
+            outLog(tr("screen not locked, skip unlock"));
+            return;
+        }
+        // 已锁屏，执行解锁链路
+        runUnlockSteps(serial, password);
+    });
+    checkAdb->execute(serial, QStringList() << "shell" << "dumpsys" << "window" << "policy" << "|" << "grep" << "showing");
+}
+
+void Dialog::runUnlockSteps(const QString &serial, const QString &password)
+{
+    // unlock 链路（实测小米 Android14 可用，保留手机锁屏密码）：
+    //   1. input keyevent 224 唤醒屏幕
+    //   2. input swipe 上滑调出密码输入界面
+    //   3. input text 输入密码
+    //   4. input keyevent 66 回车确认解锁
+    // 注：locksettings verify 只校验密码不解锁，故不采用
+    struct UnlockStep
+    {
+        QStringList args;
+        QString log;
+    };
+    auto steps = QSharedPointer<QVector<UnlockStep>>::create(QVector<UnlockStep>{
+        { QStringList() << "shell" << "input" << "keyevent" << "224", "adb shell input keyevent 224 (wake)" },
+        { QStringList() << "shell" << "input" << "swipe" << "540" << "1800" << "540" << "600" << "200", "adb shell input swipe (slide up)" },
+        { QStringList() << "shell" << "input" << "text" << password, "adb shell input text *****" },
+        { QStringList() << "shell" << "input" << "keyevent" << "66", "adb shell input keyevent 66 (enter)" },
+    });
+
+    // 递归执行各步骤，全部成功后查询锁屏状态确认
+    // steps 与递归 lambda 用 QSharedPointer 保活，避免函数返回后悬垂引用
+    auto runStep = QSharedPointer<std::function<void(int)>>::create();
+    *runStep = [this, serial, steps, runStep](int index) {
+        if (index >= steps->size()) {
+            // 查询 keyguard 状态确认解锁结果
+            auto *checkAdb = new qsc::AdbProcess(this);
+            connect(checkAdb, &qsc::AdbProcess::adbProcessResult, this, [this, checkAdb](qsc::AdbProcess::ADB_EXEC_RESULT cResult) {
+                if (cResult != qsc::AdbProcess::AER_SUCCESS_EXEC && cResult != qsc::AdbProcess::AER_ERROR_EXEC
+                        && cResult != qsc::AdbProcess::AER_ERROR_START && cResult != qsc::AdbProcess::AER_ERROR_MISSING_BINARY) {
+                    // 忽略非终态信号（如 AER_SUCCESS_START）
+                    return;
+                }
+                checkAdb->deleteLater();
+                if (cResult == qsc::AdbProcess::AER_SUCCESS_EXEC) {
+                    const QString out = checkAdb->getStdOut();
+                    if (out.contains("showing=false")) {
+                        outLog(tr("device unlocked"));
+                    } else {
+                        outLog(tr("unlock failed (screen still locked)"));
+                    }
+                } else {
+                    // 状态查询失败不影响解锁本身，直接成功
+                    outLog(tr("device unlocked"));
+                }
+            });
+            checkAdb->execute(serial, QStringList() << "shell" << "dumpsys" << "window" << "policy" << "|" << "grep" << "showing");
+            return;
+        }
+        outLog(steps->at(index).log, false);
+        auto *stepAdb = new qsc::AdbProcess(this);
+        connect(stepAdb, &qsc::AdbProcess::adbProcessResult, this,
+                [this, stepAdb, steps, runStep, index, serial](qsc::AdbProcess::ADB_EXEC_RESULT result) {
+            if (result != qsc::AdbProcess::AER_SUCCESS_EXEC && result != qsc::AdbProcess::AER_ERROR_EXEC
+                    && result != qsc::AdbProcess::AER_ERROR_START && result != qsc::AdbProcess::AER_ERROR_MISSING_BINARY) {
+                // 忽略非终态信号（如 AER_SUCCESS_START）
+                return;
+            }
+            stepAdb->deleteLater();
+            if (result != qsc::AdbProcess::AER_SUCCESS_EXEC) {
+                outLog(tr("unlock failed at step %1").arg(index + 1));
+                return;
+            }
+            // 步骤间加短暂延时，等待系统动画/界面就绪
+            QTimer::singleShot(600, this, [this, steps, runStep, index]() {
+                (*runStep)(index + 1);
+            });
+        });
+        stepAdb->execute(serial, steps->at(index).args);
+    };
+    (*runStep)(0);
+}
+
+void Dialog::on_clearLockBtn_clicked()
+{
+    if (checkAdbRun()) {
+        return;
+    }
+    const QString serial = ui->serialBox->currentText().trimmed();
+    if (serial.isEmpty()) {
+        outLog(tr("no device"));
+        return;
+    }
+    const QString password = m_lockPasswordEdt->text();
+    if (password.isEmpty()) {
+        outLog(tr("please input the lock password first"));
+        return;
+    }
+
+    // 清除是不可逆操作，二次确认
+    const QMessageBox::StandardButton button = QMessageBox::question(
+                this, tr("清除锁屏"),
+                tr("此操作将永久删除手机上的锁屏密码。\n确定要清除吗？"),
+                QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+    if (button != QMessageBox::Yes) {
+        return;
+    }
+
+    outLog("adb shell locksettings clear --old *****", false);
+    QStringList adbArgs;
+    adbArgs << "shell";
+    adbArgs << "locksettings";
+    adbArgs << "clear";
+    adbArgs << "--old";
+    // 密码含空格时须加引号，交给设备端 shell 解析
+    adbArgs << (password.contains(' ') ? QString("\"%1\"").arg(password) : password);
+    m_adb.execute(serial, adbArgs);
+}
+
 void Dialog::updateBootConfig(bool toView)
 {
     if (toView) {
@@ -432,6 +651,7 @@ void Dialog::updateBootConfig(bool toView)
         ui->showToolbar->setChecked(config.showToolbar);
         ui->decodeModeBox->setCurrentIndex(config.decodeMode);
         ui->codecModeBox->setCurrentIndex(config.codecModeIndex);
+        ui->audioForwardCheck->setChecked(config.audioForward);
 
         // Restore encoder preset dialog state (if dialog was previously opened)
         if (m_presetDialog) {
@@ -452,6 +672,11 @@ void Dialog::updateBootConfig(bool toView)
             m_keepActiveCheck->setChecked(config.keepActive);
             m_startAppBox->setEditText(config.startApp);
             updateAdvancedDisplayUi();
+        }
+        if (m_unlockGroup) {
+            m_lockPasswordEdt->setText(config.lockPassword);
+            m_savePasswordCheck->setChecked(!config.lockPassword.isEmpty());
+            m_autoUnlockCheck->setChecked(config.autoUnlock);
         }
         updateVideoSourceUi();
     } else {
@@ -475,6 +700,7 @@ void Dialog::updateBootConfig(bool toView)
         config.showToolbar = ui->showToolbar->isChecked();
         config.decodeMode = ui->decodeModeBox->currentIndex();
         config.codecModeIndex = ui->codecModeBox->currentIndex();
+        config.audioForward = ui->audioForwardCheck->isChecked();
 
         // Save encoder preset dialog state (if opened)
         if (m_presetDialog) {
@@ -504,6 +730,17 @@ void Dialog::updateBootConfig(bool toView)
         QString currentIp = ui->deviceIpEdt->currentText().trimmed();
         if (!currentIp.isEmpty()) {
             saveIpHistory(currentIp);
+        }
+
+        // 锁屏密码：勾选保存时写入本机（base64），取消勾选则清除
+        if (m_unlockGroup) {
+            if (m_savePasswordCheck->isChecked()) {
+                config.lockPassword = m_lockPasswordEdt->text();
+                config.autoUnlock = m_autoUnlockCheck->isChecked();
+            } else {
+                config.lockPassword = "";
+                config.autoUnlock = false;
+            }
         }
 
         Config::getInstance().setUserBootConfig(config);
@@ -596,8 +833,8 @@ void Dialog::updateVideoSourceUi()
     ui->gameBox->setEnabled(!camera);
     ui->refreshGameScriptBtn->setEnabled(!camera);
     ui->applyScriptBtn->setEnabled(!camera);
-    ui->installSndcpyBtn->setEnabled(!camera);
-    ui->startAudioBtn->setEnabled(!camera);
+    // 音频随投屏启动；相机采集没有播放捕获目标
+    ui->audioForwardCheck->setEnabled(!camera);
     if (m_advancedDisplayGroup) {
         m_advancedDisplayGroup->setEnabled(!camera);
     }
@@ -644,6 +881,15 @@ void Dialog::on_startServerBtn_clicked()
     params.recordFile = ui->recordScreenCheck->isChecked();
     params.recordPath = ui->recordPathEdt->text().trimmed();
     params.recordFileFormat = ui->formatBox->currentText().trimmed();
+    // 录制由投屏窗口工具栏的 recordBtn 手动开始/停止，这里的路径与格式只是
+    // 录制的默认配置，只在按下按钮那一刻才被 Device 读取一次。
+    // 也就是说：投屏之后再改保存目录/格式，对已建立的会话不生效，
+    // 需要重新启动服务端。这点和音频开关是同一个坑，写进日志避免误判。
+    if (params.recordFile && !camera) {
+        outLog(tr("record settings: path=\"%1\" format=%2 (apply to new sessions only)")
+                        .arg(params.recordPath.isEmpty() ? tr("<not set>") : params.recordPath)
+                        .arg(params.recordFileFormat));
+    }
     params.serverLocalPath = getServerPath();
     params.serverRemotePath = Config::getInstance().getServerPath();
     params.pushFilePath = Config::getInstance().getPushFilePath();
@@ -674,8 +920,29 @@ void Dialog::on_startServerBtn_clicked()
         params.codecOptions = Config::getInstance().getCodecOptions();
         params.codecName = Config::getInstance().getCodecName();
     }
+    // 中途开始录制（悬浮工具栏 recordBtn）需要等待自然关键帧才能写出合法
+    // mp4；MediaCodec 默认 i-frame-interval=10s，画面静止时甚至更久。这里统一
+    // 收紧到 2s（用户显式设置过该键时尊重用户）。服务端逐项 setInteger，
+    // 追加在后面的同名键生效。
+    if (!params.codecOptions.contains("i-frame-interval")) {
+        params.codecOptions = params.codecOptions.isEmpty()
+                                      ? QString("i-frame-interval=2")
+                                      : params.codecOptions + ",i-frame-interval=2";
+    }
     params.scid = QRandomGenerator::global()->bounded(1, 10000) & 0x7FFFFFFF;
     params.decodeMode = ui->decodeModeBox->currentIndex();
+    // 音频勾选 = 服务端采集开关。⚠️ 实测（MIUI/Android 14）playback capture
+    // 一旦开启，手机本地扬声器即被静音（声音只进采集通道）——所以「不勾」
+    // 必须彻底不采集，手机才能正常外放。playAudio 跟随勾选（勾=电脑播）。
+    // 注意录制有声同样依赖采集：不勾 audio 时录制只有视频（Android 不提供
+    // 「旁路采集且手机继续外放」的能力），这是三者的硬约束，无法同时满足。
+    params.audio = !camera && ui->audioForwardCheck->isChecked();
+    params.playAudio = params.audio;
+    // 把音频开关的最终取值写进界面日志。无声问题里有两大类原因：
+    // 一是这一步取到了 false（勾选时机/相机模式），二是 true 但采集或播放链路有问题。
+    // 先看这行日志就能把两类原因分开，不必再猜。
+    outLog(tr("audio forwarding: %1 (device speaker muted while capturing; recording carries sound only when on)")
+                   .arg(params.audio ? "on" : "off"));
     // Disabled widgets may remain checked from persisted settings. Advanced
     // display options are not valid for camera capture, so never copy them
     // into camera session parameters.
@@ -1087,6 +1354,11 @@ void Dialog::onDeviceConnected(bool success, const QString &serial, const QStrin
 #endif
 
     GroupController::instance().addDevice(serial);
+
+    // 已保存密码且勾选自动解锁时，投屏连接成功后自动解锁锁屏
+    if (m_unlockGroup && m_autoUnlockCheck->isChecked() && !m_lockPasswordEdt->text().isEmpty()) {
+        unlockDevice(serial);
+    }
 }
 
 void Dialog::onDeviceDisconnected(QString serial)
@@ -1327,30 +1599,6 @@ const QString &Dialog::getServerPath()
         }
     }
     return serverPath;
-}
-
-void Dialog::on_startAudioBtn_clicked()
-{
-    if (ui->serialBox->count() == 0) {
-        qWarning() << "No device is connected!";
-        return;
-    }
-
-    m_audioOutput.start(ui->serialBox->currentText(), 28200);
-}
-
-void Dialog::on_stopAudioBtn_clicked()
-{
-    m_audioOutput.stop();
-}
-
-void Dialog::on_installSndcpyBtn_clicked()
-{
-    if (ui->serialBox->count() == 0) {
-        qWarning() << "No device is connected!";
-        return;
-    }
-    m_audioOutput.installonly(ui->serialBox->currentText(), 28200);
 }
 
 void Dialog::on_autoUpdatecheckBox_toggled(bool checked)

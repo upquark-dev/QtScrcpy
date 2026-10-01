@@ -6,6 +6,7 @@
 #include <QWidget>
 
 #include "../QtScrcpyCore/include/QtScrcpyCore.h"
+#include "audio/audiooutput.h"
 
 namespace Ui
 {
@@ -44,6 +45,9 @@ private:
     void updateFPS(quint32 fps) override;
     void onVideoSessionChanged(const QSize &size, bool clientResized) override;
     void grabCursor(bool grab) override;
+    // 音频回传（audio_codec=raw，固定 48000Hz/2 声道/16bit）
+    void onAudioData(const QByteArray &pcm, int sampleRate, int channelCount) override;
+    void onAudioStreamStopped() override;
 
     void updateStyleSheet(bool vertical);
     QMargins getMargins(bool vertical);
@@ -99,6 +103,8 @@ private:
     QPoint m_fullScreenBeforePos;
     QString m_serial;
     int m_decodeMode = 0;
+    // 每个投屏窗口独立播放自己设备的音频（群控时互不影响）
+    AudioOutput m_audioOutput;
     bool m_metalFirstFrame = true;  // Metal 首次帧标记
     bool m_flexDisplay = false;
     bool m_preventAutoResize = false;

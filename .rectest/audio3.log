@@ -1,0 +1,19 @@
+adb path: E:/QtScrcpy/output/x64/RelWithDebInfo/adb.exe
+"E:/QtScrcpy/output/x64/RelWithDebInfo/adb.exe" "-s a915bc88 push E:/QtScrcpy/output/x64/RelWithDebInfo/scrcpy-server /data/local/tmp/scrcpy_server_rectest"
+AdbProcessImpl::out:E:/QtScrcpy/output/x64/RelWithDebInfo/scrcpy-server: 1 file pushed, 0 skipped. 18.6 MB/s (733706 bytes in 0.038s)
+"E:/QtScrcpy/output/x64/RelWithDebInfo/adb.exe" "-s a915bc88 reverse localabstract:scrcpy_0000110e tcp:27183"
+adb return  0 exit status  QProcess::NormalExit
+Server::audio forwarding ENABLED, codec "raw" source "playback"
+"E:/QtScrcpy/output/x64/RelWithDebInfo/adb.exe" "-s a915bc88 shell CLASSPATH=/data/local/tmp/scrcpy_server_rectest app_process / com.genymobile.scrcpy.Server 4.1 video_bit_rate=8000000 log_level=info max_size=1600 max_fps=60 capture_orientation=0 video_codec_options=i-frame-interval=2 audio=true audio_codec=raw audio_source=playback scid=0000110e"
+adb return  0 exit status  QProcess::NormalExit
+AdbProcessImpl::out:[server] INFO: Device: [Xiaomi] Xiaomi M2102K1AC (Android 14)
+readInfo wait time: 182
+audio socket connected
+"E:/QtScrcpy/output/x64/RelWithDebInfo/adb.exe" "-s a915bc88 reverse --remove localabstract:scrcpy_0000110e"
+server start finish in 0.672s
+adb return  0 exit status  QProcess::NormalExit
+AudioDemuxer: raw audio stream started, 48000 Hz 2 ch 16bit
+AudioOutput::audio state changed: IdleState
+AudioOutput::audio playback started at 48000 Hz 2 channels
+AudioOutput::audio state changed: ActiveState
+End of frames

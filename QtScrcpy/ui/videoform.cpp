@@ -56,7 +56,22 @@ VideoForm::VideoForm(bool framelessWindow, bool skin, bool showToolbar, int deco
 
 VideoForm::~VideoForm()
 {
+    m_audioOutput.stop();
     delete ui;
+}
+
+void VideoForm::onAudioData(const QByteArray &pcm, int sampleRate, int channelCount)
+{
+    m_audioOutput.writePcm(pcm, sampleRate, channelCount);
+}
+
+void VideoForm::onAudioStreamStopped()
+{
+    // 服务端禁用音频（例如 Android 版本不支持采集），或采集失败时走到这里
+    if (m_audioOutput.isRunning()) {
+        qInfo() << "VideoForm::audio stream stopped";
+        m_audioOutput.stop();
+    }
 }
 
 bool VideoForm::isMetalMode() const
@@ -942,6 +957,7 @@ void VideoForm::resizeEvent(QResizeEvent *event)
 void VideoForm::closeEvent(QCloseEvent *event)
 {
     Q_UNUSED(event)
+    m_audioOutput.stop();
     auto device = qsc::IDeviceManage::getInstance().getDevice(m_serial);
     if (!device) {
         return;

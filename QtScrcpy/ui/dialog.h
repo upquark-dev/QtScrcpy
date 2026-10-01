@@ -12,7 +12,6 @@
 
 #include "adbprocess.h"
 #include "../QtScrcpyCore/include/QtScrcpyCore.h"
-#include "audio/audiooutput.h"
 #include "presetconfigdialog.h"
 
 namespace Ui
@@ -65,12 +64,6 @@ private slots:
     void on_useSingleModeCheck_clicked();
     void on_serialBox_currentIndexChanged(const QString &arg1);
 
-    void on_startAudioBtn_clicked();
-
-    void on_stopAudioBtn_clicked();
-
-    void on_installSndcpyBtn_clicked();
-
     void on_autoUpdatecheckBox_toggled(bool checked);
 
     void on_codecModeBox_currentIndexChanged(int index);
@@ -79,6 +72,8 @@ private slots:
     void on_videoSourceBox_currentIndexChanged(int index);
     void on_refreshCameraBtn_clicked();
     void on_refreshAppsBtn_clicked();
+    void on_clearLockBtn_clicked();
+    void on_unlockBtn_clicked();
 
     void showIpEditMenu(const QPoint &pos);
 
@@ -103,6 +98,9 @@ private:
 
     void showPortEditMenu(const QPoint &pos);
     void syncPresetLevelToUi();
+    void initUnlockUi();
+    void unlockDevice(const QString &serial);
+    void runUnlockSteps(const QString &serial, const QString &password);
 
 protected:
     void closeEvent(QCloseEvent *event);
@@ -123,10 +121,15 @@ private:
     QCheckBox *m_keepActiveCheck = nullptr;
     QComboBox *m_startAppBox = nullptr;
     QPushButton *m_refreshAppsBtn = nullptr;
+    QGroupBox *m_unlockGroup = nullptr;
+    QLineEdit *m_lockPasswordEdt = nullptr;
+    QPushButton *m_clearLockBtn = nullptr;
+    QPushButton *m_unlockBtn = nullptr;
+    QCheckBox *m_savePasswordCheck = nullptr;
+    QCheckBox *m_autoUnlockCheck = nullptr;
     QMenu *m_menu;
     QAction *m_showWindow;
     QAction *m_quit;
-    AudioOutput m_audioOutput;
     QTimer m_autoUpdatetimer;
     quint32 m_prevBitRate = 2000000;
     int m_prevMaxSizeIndex = 0;

@@ -105,6 +105,9 @@
 #define COMMON_CODEC_MODE_INDEX_KEY "CodecModeIndex"
 #define COMMON_CODEC_MODE_INDEX_DEF 0
 
+#define COMMON_AUDIO_FORWARD_KEY "AudioForward"
+#define COMMON_AUDIO_FORWARD_DEF false
+
 #define COMMON_PRESET_LEVEL_KEY "PresetLevel"
 #define COMMON_PRESET_LEVEL_DEF 1
 
@@ -195,6 +198,7 @@ void Config::setUserBootConfig(const UserBootConfig &config)
     m_userData->setValue(COMMON_SHOW_TOOLBAR_KEY, config.showToolbar);
     m_userData->setValue(COMMON_DECODE_MODE_KEY, config.decodeMode);
     m_userData->setValue(COMMON_CODEC_MODE_INDEX_KEY, config.codecModeIndex);
+    m_userData->setValue(COMMON_AUDIO_FORWARD_KEY, config.audioForward);
     m_userData->setValue(COMMON_PRESET_LEVEL_KEY, config.presetLevel);
     m_userData->setValue(COMMON_VIDEO_SOURCE_KEY, config.videoSource);
     m_userData->setValue(COMMON_CAMERA_FACING_KEY, config.cameraFacing);
@@ -209,6 +213,9 @@ void Config::setUserBootConfig(const UserBootConfig &config)
     m_userData->setValue("VdDestroyContent", config.vdDestroyContent);
     m_userData->setValue("KeepActive", config.keepActive);
     m_userData->setValue("StartApp", config.startApp);
+    // 锁屏密码以 base64 存储，避免 ini 中直接明文可见
+    m_userData->setValue("LockPassword", QString::fromLatin1(config.lockPassword.toUtf8().toBase64()));
+    m_userData->setValue("AutoUnlock", config.autoUnlock);
     m_userData->endGroup();
     m_userData->sync();
 }
@@ -235,6 +242,7 @@ UserBootConfig Config::getUserBootConfig()
     config.showToolbar =m_userData->value(COMMON_SHOW_TOOLBAR_KEY,COMMON_SHOW_TOOLBAR_DEF).toBool();
     config.decodeMode = m_userData->value(COMMON_DECODE_MODE_KEY, COMMON_DECODE_MODE_DEF).toInt();
     config.codecModeIndex = m_userData->value(COMMON_CODEC_MODE_INDEX_KEY, COMMON_CODEC_MODE_INDEX_DEF).toInt();
+    config.audioForward = m_userData->value(COMMON_AUDIO_FORWARD_KEY, COMMON_AUDIO_FORWARD_DEF).toBool();
     // PresetLevel replaced the MTK-specific MtkLevel key; fall back to the old
     // key so users who already picked a tier keep their selection.
     config.presetLevel = m_userData->value(COMMON_PRESET_LEVEL_KEY, -1).toInt();
@@ -254,6 +262,8 @@ UserBootConfig Config::getUserBootConfig()
     config.vdDestroyContent = m_userData->value("VdDestroyContent", true).toBool();
     config.keepActive = m_userData->value("KeepActive", false).toBool();
     config.startApp = m_userData->value("StartApp", "").toString();
+    config.lockPassword = QString::fromUtf8(QByteArray::fromBase64(m_userData->value("LockPassword", "").toString().toLatin1()));
+    config.autoUnlock = m_userData->value("AutoUnlock", false).toBool();
     m_userData->endGroup();
     return config;
 }

@@ -194,6 +194,16 @@
     </widget>
    </item>
    <item>
+    <widget class="QPushButton" name="recordBtn">
+     <property name="toolTip">
+      <string>start / stop recording</string>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QPushButton" name="cameraTorchBtn">
      <property name="toolTip">
       <string>torch</string>

@@ -1,5 +1,6 @@
 #include <QDebug>
 #include <QHideEvent>
+#include <QMessageBox>
 #include <QMouseEvent>
 #include <QShowEvent>
 
@@ -29,6 +30,7 @@ void ToolForm::setSerial(const QString &serial)
 {
     m_serial = serial;
     updateCameraMode();
+    updateRecordState();
 }
 
 bool ToolForm::isHost()
@@ -56,6 +58,8 @@ void ToolForm::updateCameraMode()
     ui->homeBtn->setVisible(!camera);
     ui->returnBtn->setVisible(!camera);
     ui->clipboardBtn->setVisible(!camera);
+    // 相机采集的是摄像头画面，不是"屏幕"，录制按钮无意义
+    ui->recordBtn->setVisible(!camera);
     ui->cameraTorchBtn->setVisible(camera);
     ui->cameraZoomOutBtn->setVisible(camera);
     ui->cameraZoomInBtn->setVisible(camera);
@@ -78,6 +82,7 @@ void ToolForm::initStyle()
     IconHelper::Instance()->SetIcon(ui->expandSettingsBtn, QChar(0xf013), 15);
     IconHelper::Instance()->SetIcon(ui->rotateBtn, QChar(0xf021), 15);
     IconHelper::Instance()->SetIcon(ui->screenShotBtn, QChar(0xf0c4), 15);
+    IconHelper::Instance()->SetIcon(ui->recordBtn, QChar(0xf030), 15);
     IconHelper::Instance()->SetIcon(ui->touchBtn, QChar(0xf111), 15);
     IconHelper::Instance()->SetIcon(ui->groupControlBtn, QChar(0xf0c0), 15);
     IconHelper::Instance()->SetIcon(ui->clipboardBtn, QChar(0xf0c5), 15);
@@ -200,6 +205,35 @@ void ToolForm::on_screenShotBtn_clicked()
         return;
     }
     device->screenshot();
+}
+
+void ToolForm::on_recordBtn_clicked()
+{
+    auto device = qsc::IDeviceManage::getInstance().getDevice(m_serial);
+    if (!device) {
+        return;
+    }
+
+    if (device->isRecording()) {
+        device->stopRecording();
+    } else {
+        // startRecording() 失败时（未连接 / 未选保存目录 / muxer 不可用）
+        // 会返回 false 并给出原因，这里直接提示给用户，避免"点了没反应"
+        if (!device->startRecording()) {
+            const QString reason = device->lastRecordingError();
+            QMessageBox::warning(this, tr("Record"), reason.isEmpty() ? tr("could not start recording") : reason);
+        }
+    }
+    updateRecordState();
+}
+
+void ToolForm::updateRecordState()
+{
+    auto device = qsc::IDeviceManage::getInstance().getDevice(m_serial);
+    const bool recording = device && device->isRecording();
+    // 沿用 groupControlBtn 的红/绿约定：红=进行中，绿=空闲
+    ui->recordBtn->setStyleSheet(recording ? "color: red" : "color: green");
+    ui->recordBtn->setToolTip(recording ? tr("stop recording") : tr("start recording"));
 }
 
 void ToolForm::on_volumeUpBtn_clicked()

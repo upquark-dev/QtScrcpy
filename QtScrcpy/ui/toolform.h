@@ -40,6 +40,7 @@ private slots:
     void on_appSwitchBtn_clicked();
     void on_powerBtn_clicked();
     void on_screenShotBtn_clicked();
+    void on_recordBtn_clicked();
     void on_volumeUpBtn_clicked();
     void on_volumeDownBtn_clicked();
     void on_closeScreenBtn_clicked();
@@ -58,6 +59,8 @@ private:
     void initStyle();
     void updateGroupControl();
     void updateCameraMode();
+    // 录制按钮的红/绿状态与提示文字
+    void updateRecordState();
 
 private:
     Ui::ToolForm *ui;

@@ -251,7 +251,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
         VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
         VERSION_MINOR=${PROJECT_VERSION_MINOR}
         VERSION_PATCH=${PROJECT_VERSION_PATCH}
-        VERSION_RC_STR="${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}"
     )
     set(QC_PLANTFORM_SOURCES
         "${CMAKE_CURRENT_SOURCE_DIR}/res/${PROJECT_NAME}.rc"
@@ -326,10 +325,29 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     get_target_property(QSC_BIN_OUTPUT_PATH ${PROJECT_NAME} RUNTIME_OUTPUT_DIRECTORY)
     set(QSC_DEPLOY_PATH ${QSC_BIN_OUTPUT_PATH})
 
+    # MinGW 下 #pragma comment(lib,...) 无效，在此显式链接
+    if(NOT MSVC)
+        target_link_libraries(${PROJECT_NAME} PRIVATE dwmapi)
+    endif()
+
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/sndcpy/sndcpy.bat" "${QSC_BIN_OUTPUT_PATH}"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/sndcpy/sndcpy.apk" "${QSC_BIN_OUTPUT_PATH}"
     )
+
+    # Qt Multimedia 的音频后端插件（plugins/audio/qtaudio_windows.dll）不会随
+    # windeployqt 的默认输出进入部署目录。它缺失时 QAudioOutput 会枚举到 0 个
+    # 音频设备，isFormatSupported() 返回 false，表现就是「投屏有画面但没有声音」，
+    # 且不报错。这里显式随构建部署，避免换机器或清空 output/ 后静默失效。
+    if(Qt5Multimedia_DIR)
+        get_filename_component(QSC_QT_ROOT "${Qt5Multimedia_DIR}/../../.." ABSOLUTE)
+        if(EXISTS "${QSC_QT_ROOT}/plugins/audio")
+            add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E make_directory "${QSC_BIN_OUTPUT_PATH}/audio"
+                COMMAND ${CMAKE_COMMAND} -E copy_directory "${QSC_QT_ROOT}/plugins/audio" "${QSC_BIN_OUTPUT_PATH}/audio"
+            )
+        endif()
+    endif()
 endif()
 
 # MacOS

@@ -25,6 +25,7 @@ struct UserBootConfig
     bool showToolbar      = true;
     int decodeMode        = 0;  // 0=FFmpeg OpenGL (默认), 1=VideoToolbox Metal (Apple Silicon)
     int codecModeIndex    = 0;
+    bool audioForward     = false;  // 投屏时同时转发设备音频
     int presetLevel       = 1;  // optimization tier of the currently selected encoder preset
     int videoSource       = 0;  // 0=display, 1=camera
     int cameraFacing      = 0;  // 0=back, 1=front
@@ -39,6 +40,8 @@ struct UserBootConfig
     bool vdDestroyContent = true;
     bool keepActive = false;
     QString startApp;
+    QString lockPassword = "";   // 锁屏密码（base64 存储，供远程解锁）
+    bool autoUnlock = false;     // 投屏连接成功后自动解锁
 };
 
 class QSettings;

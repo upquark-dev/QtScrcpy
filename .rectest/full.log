@@ -1,0 +1,63 @@
+adb path: E:/QtScrcpy/output/x64/RelWithDebInfo/adb.exe
+"E:/QtScrcpy/output/x64/RelWithDebInfo/adb.exe" "-s a915bc88 push E:/QtScrcpy/output/x64/RelWithDebInfo/scrcpy-server /data/local/tmp/scrcpy_server_rectest"
+AdbProcessImpl::out:E:/QtScrcpy/output/x64/RelWithDebInfo/scrcpy-server: 1 file pushed, 0 skipped. 18.1 MB/s (733706 bytes in 0.039s)
+"E:/QtScrcpy/output/x64/RelWithDebInfo/adb.exe" "-s a915bc88 reverse localabstract:scrcpy_00000c65 tcp:27183"
+adb return  0 exit status  QProcess::NormalExit
+Server::audio forwarding ENABLED, codec "raw" source "playback"
+"E:/QtScrcpy/output/x64/RelWithDebInfo/adb.exe" "-s a915bc88 shell CLASSPATH=/data/local/tmp/scrcpy_server_rectest app_process / com.genymobile.scrcpy.Server 4.1 video_bit_rate=8000000 log_level=debug max_size=1600 max_fps=60 capture_orientation=0 video_codec_options=i-frame-interval=2 audio=true audio_codec=raw audio_source=playback scid=00000c65"
+adb return  0 exit status  QProcess::NormalExit
+AdbProcessImpl::out:[server] INFO: Device: [Xiaomi] Xiaomi M2102K1AC (Android 14)
+readInfo wait time: 190
+audio socket connected
+"E:/QtScrcpy/output/x64/RelWithDebInfo/adb.exe" "-s a915bc88 reverse --remove localabstract:scrcpy_00000c65"
+[evt] deviceConnected success = true "a915bc88" "M2102K1AC" QSize(720, 1600)
+server start finish in 0.646s
+AdbProcessImpl::out:[server] DEBUG: Using video encoder: 'c2.qti.avc.encoder'
+[server] DEBUG: Video codec option set: i-frame-interval (Integer) = 2
+[server] DEBUG: Video codec size alignment requirement: 2px
+[server] DEBUG: Display: using DisplayManager API
+adb return  0 exit status  QProcess::NormalExit
+AudioDemuxer: raw audio stream started, 48000 Hz 2 ch 16bit
+>>> [t+3s] startRecording #1 (mid-stream)
+"recording started: a915bc88 -> E:/QtScrcpy/.rectest/out/a915bc88_20261002_015019_806.mp4"
+AdbProcessImpl::out:[server] INFO: Video capture reset
+AdbProcessImpl::out:[server] DEBUG: Display: using DisplayManager API
+Video session changed to QSize(720, 1600) client resized: false
+>>> [t+9s] stopRecording #1
+Recorder thread ended
+success record E:/QtScrcpy/.rectest/out/a915bc88_20261002_015019_806.mp4
+"[FFmpeg] Qavg: %.3f\n"
+recording stopped: a915bc88
+>>> [t+9.5s] startRecording #2 (reuse)
+"recording started: a915bc88 -> E:/QtScrcpy/.rectest/out/a915bc88_20261002_015026_304.mp4"
+AdbProcessImpl::out:[server] INFO: Video capture reset
+AdbProcessImpl::out:[server] DEBUG: Display: using DisplayManager API
+Video session changed to QSize(720, 1600) client resized: false
+>>> [t+15.5s] stopRecording #2
+Recorder thread ended
+success record E:/QtScrcpy/.rectest/out/a915bc88_20261002_015026_304.mp4
+"[FFmpeg] Qavg: %.3f\n"
+recording stopped: a915bc88
+[verify] phase1: file loaded, size = 86993
+[verify] phase2: video samples = 25 syncSamples = 1
+[verify] phase3: annexb done
+[verify] phase4: codec open, ret = 0
+"[FFmpeg] no frame!\n"
+[verify] video: decoded frames = 25 sendErrors = 0 resolution = 720 x 1600
+[verify] phaseA: esds found, ASC size = 5
+[verify] phaseB: aac decoder open, ret = 0
+[verify] audio: packets = 269 bytes = 1650 decodedSamples = 275456 seconds = "5.74" avg RMS = "0.0000" peak RMS = "0.0000" decErrs = 0 (RMS=0 只说明录制期间手机媒体静默)
+[verify] audioOk = true videoOk = true
+[verify] phase1: file loaded, size = 91265
+[verify] phase2: video samples = 25 syncSamples = 1
+[verify] phase3: annexb done
+[verify] phase4: codec open, ret = 0
+"[FFmpeg] no frame!\n"
+[verify] video: decoded frames = 25 sendErrors = 0 resolution = 720 x 1600
+[verify] phaseA: esds found, ASC size = 5
+[verify] phaseB: aac decoder open, ret = 0
+[verify] audio: packets = 267 bytes = 1638 decodedSamples = 273408 seconds = "5.70" avg RMS = "0.0000" peak RMS = "0.0000" decErrs = 0 (RMS=0 只说明录制期间手机媒体静默)
+[verify] audioOk = true videoOk = true
+====================================
+[PASS] recording e2e OK
+====================================
