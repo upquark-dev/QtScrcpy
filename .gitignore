@@ -15,3 +15,8 @@ build-*
 userdata.ini
 Info_Mac.plist
 /ci/build_temp
+# 本地工作产物（不随仓库分发）
+/.trash
+/.ffmpegbuild
+/aqtinstall.log
+*.mov
