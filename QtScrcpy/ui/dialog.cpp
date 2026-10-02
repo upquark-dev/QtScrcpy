@@ -303,9 +303,9 @@ void Dialog::initUI()
     ui->verticalLayout_5->addWidget(ui->usbGroupBox);
     ui->verticalLayout_5->addWidget(ui->wirelessGroupBox);
     startConfigLayout->addWidget(ui->configGroupBox);
-    startConfigLayout->addStretch();
+    // 页内不加 stretch：页面高度贴合内容，选项卡下方（解锁组、日志区等）
+    // 紧随其上，避免"内容只占两行、下方一大片空白"的松散观感
     advancedDisplayLayout->addWidget(m_advancedDisplayGroup);
-    advancedDisplayLayout->addStretch();
     configTabs->addTab(startConfigPage, tr("Start Config"));
     configTabs->addTab(advancedDisplayPage, tr("Advanced Display"));
     configTabs->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
