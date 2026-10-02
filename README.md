@@ -11,6 +11,18 @@
 
 [中文用户？点我查看中文介绍](README_zh.md)
 
+## Enhancements in this fork (v4.2.0)
+
+Based on barry-ran/QtScrcpy v4.1.1, this fork adds:
+
+- 🔓 **Unlock device / clear lock password** — one-click unlock over the mirroring session (wake → swipe → type password → enter), verified on MIUI/Android 14. Supports saving the password locally (base64 in userdata.ini) and auto-unlock on connect. "Clear lock" can remove the lock password entirely (with confirmation).
+- 🔊 **One-key audio forwarding** — the three legacy sndcpy buttons (install/start/stop, already broken on Android 14) are replaced by a single checkbox: the device audio is captured natively by the scrcpy server (playback capture, raw PCM 48 kHz/2 ch) and played on the PC in real time. No app install or on-device confirmation needed.
+- 🎬 **Screen recording with sound (MP4/MOV/MKV)** — a record button on the floating toolbar, decoupled from the mirroring session: start/stop anytime, each recording is an independent file. Video H.264 + audio AAC (PCM encoded on the fly) muxed into a standard MP4 track; supports mid-session recording start; ships proper color metadata (BT.601 colr box) so players render colors correctly.
+
+Technical details and build notes: see [AGENTS.md](AGENTS.md).
+
+---
+
 QtScrcpy supports displaying and controlling Android devices via USB or over network. It does NOT require root privileges.
 
 It supports three major platforms: GNU/Linux, Windows and macOS.

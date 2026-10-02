@@ -11,6 +11,18 @@
 
 [Speaks English? Click me for English introduction.](README.md)
 
+## 本 fork 的增强功能（v4.2.0）
+
+基于 barry-ran/QtScrcpy v4.1.1，增加了：
+
+- 🔓 **解除锁屏 / 清除锁屏密码** —— 投屏会话内一键解锁（唤醒→上滑→输密码→回车），实测小米 MIUI/Android 14。支持保存密码（base64 存 userdata.ini）与「连接后自动解锁」；「清除锁屏密码」可彻底去掉锁屏（带确认框）。
+- 🔊 **一键音频转发** —— 原版三个 sndcpy 按钮（安装/开始/停止，Android 14 上已失效）替换为单个勾选框：手机声音由 scrcpy 服务端原生采集（playback capture，48kHz/2ch 裸 PCM）实时传到电脑播放，无需手机装包或弹窗确认。
+- 🎬 **录屏带声音（MP4/MOV/MKV）** —— 悬浮工具栏录制按钮，与投屏会话解耦：随时开始/停止，每次生成独立文件。视频 H.264 + 音频 AAC（PCM 实时编码）封装为标准 MP4 音轨；支持投屏中途开始录制；写入标准色彩标记（BT.601 colr box），播放器不再偏色。
+
+实现细节与构建说明见 [AGENTS.md](AGENTS.md)。
+
+---
+
 QtScrcpy 可以通过 USB / 网络连接Android设备，并进行显示和控制。无需root权限。
 
 同时支持 GNU/Linux ，Windows 和 MacOS 三大主流桌面平台。
