@@ -7,11 +7,11 @@
 #include <QFileInfo>
 #include <QIcon>
 #endif
+#include <QDateTime>
 #include <QSurfaceFormat>
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QTranslator>
-#include <QDateTime>
 
 #include "config.h"
 #include "dialog.h"
@@ -27,18 +27,16 @@ QtMsgType covertLogLevel(const QString &logLevel);
 
 int main(int argc, char *argv[])
 {
-    // set env
+// set env
 #ifdef Q_OS_WIN32
     qputenv("QTSCRCPY_ADB_PATH", "../../../QtScrcpy/QtScrcpyCore/src/third_party/adb/win/adb.exe");
     qputenv("QTSCRCPY_SERVER_PATH", "../../../QtScrcpy/QtScrcpyCore/src/third_party/scrcpy-server");
-    qputenv("QTSCRCPY_KEYMAP_PATH", "../../../keymap");
     qputenv("QTSCRCPY_CONFIG_PATH", "../../../config");
 #endif
 
 #ifdef Q_OS_MACOS
     qputenv("QTSCRCPY_ADB_PATH", "../../../../../../QtScrcpy/QtScrcpyCore/src/third_party/adb/mac/adb");
     qputenv("QTSCRCPY_SERVER_PATH", "../../../../../../QtScrcpy/QtScrcpyCore/src/third_party/scrcpy-server");
-    qputenv("QTSCRCPY_KEYMAP_PATH", "../../../../../../keymap");
     qputenv("QTSCRCPY_CONFIG_PATH", "../../../../../../config");
 #endif
 
@@ -49,9 +47,6 @@ int main(int argc, char *argv[])
     }
     if (qgetenv("QTSCRCPY_SERVER_PATH").isEmpty()) {
         qputenv("QTSCRCPY_SERVER_PATH", "../../../QtScrcpy/QtScrcpyCore/src/third_party/scrcpy-server");
-    }
-    if (qgetenv("QTSCRCPY_KEYMAP_PATH").isEmpty()) {
-        qputenv("QTSCRCPY_KEYMAP_PATH", "../../../keymap");
     }
     if (qgetenv("QTSCRCPY_CONFIG_PATH").isEmpty()) {
         qputenv("QTSCRCPY_CONFIG_PATH", "../../../config");
@@ -74,7 +69,7 @@ int main(int argc, char *argv[])
 #if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 
-#if (QT_VERSION >= QT_VERSION_CHECK(5,14,0))
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 14, 0))
     QGuiApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
 #endif
 #endif
@@ -145,11 +140,11 @@ int main(int argc, char *argv[])
 
     qsc::AdbProcess::setAdbPath(Config::getInstance().getAdbPath());
 
-    g_mainDlg = new Dialog {};
+    g_mainDlg = new Dialog{};
     g_mainDlg->show();
 
     qInfo() << QObject::tr("This software is completely open source and free. Use it at your own risk. You can download it at the "
-            "following address:");
+                           "following address:");
     qInfo() << QString("QtScrcpy %1 <https://github.com/barry-ran/QtScrcpy>").arg(QCoreApplication::applicationVersion());
 
     qInfo() << QObject::tr("If you need more professional batch control mirror software, you can try the following software:");
@@ -235,10 +230,10 @@ QtMsgType covertLogLevel(const QString &logLevel)
 void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
     QString outputMsg;
-    
+
 #ifdef ENABLE_DETAILED_LOGS
     QString timestamp = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz");
-    
+
     if (context.file && context.line > 0) {
         QString fileName = QString::fromUtf8(context.file);
 
@@ -250,7 +245,7 @@ void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QS
         if (lastSlash >= 0) {
             fileName = fileName.mid(lastSlash + 1);
         }
-        
+
         outputMsg = QString("[ %1 %2: %3 ] %4").arg(timestamp).arg(fileName).arg(context.line).arg(msg);
     } else {
         outputMsg = QString("[%1] %2").arg(timestamp).arg(msg);

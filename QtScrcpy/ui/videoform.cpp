@@ -20,9 +20,9 @@
 
 #include "config.h"
 #include "iconhelper.h"
+#include "mousetap/mousetap.h"
 #include "qyuvopenglwidget.h"
 #include "toolform.h"
-#include "mousetap/mousetap.h"
 #include "ui_videoform.h"
 #include "videoform.h"
 
@@ -30,7 +30,8 @@
 #include "metalvideowindow.h"
 #endif
 
-VideoForm::VideoForm(bool framelessWindow, bool skin, bool showToolbar, int decodeMode, QWidget *parent) : QWidget(parent), ui(new Ui::videoForm), m_skin(skin), m_decodeMode(decodeMode)
+VideoForm::VideoForm(bool framelessWindow, bool skin, bool showToolbar, int decodeMode, QWidget *parent)
+    : QWidget(parent), ui(new Ui::videoForm), m_skin(skin), m_decodeMode(decodeMode)
 {
     ui->setupUi(this);
     m_flexResizeTimer.setSingleShot(true);
@@ -83,7 +84,7 @@ bool VideoForm::isMetalMode() const
 #endif
 }
 
-QWidget* VideoForm::videoWidget() const
+QWidget *VideoForm::videoWidget() const
 {
 #ifdef Q_OS_MACOS
     if (isMetalMode()) {
@@ -213,7 +214,7 @@ void VideoForm::showFPS(bool show)
     m_fpsLabel->setVisible(show);
 }
 
-void VideoForm::updateRender(int width, int height, uint8_t* dataY, uint8_t* dataU, uint8_t* dataV, int linesizeY, int linesizeU, int linesizeV)
+void VideoForm::updateRender(int width, int height, uint8_t *dataY, uint8_t *dataU, uint8_t *dataV, int linesizeY, int linesizeU, int linesizeV)
 {
     if (isMetalMode()) {
         // Metal 路径不通过此方法渲染，使用 onFrameMetal
@@ -713,11 +714,11 @@ void VideoForm::mousePressEvent(QMouseEvent *event)
     }
 
 #if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
-        QPointF localPos = event->localPos();
-        QPointF globalPos = event->globalPos();
+    QPointF localPos = event->localPos();
+    QPointF globalPos = event->globalPos();
 #else
-        QPointF localPos = event->position();
-        QPointF globalPos = event->globalPosition();
+    QPointF localPos = event->position();
+    QPointF globalPos = event->globalPosition();
 #endif
 
     QWidget *vw = videoWidget();
@@ -728,14 +729,6 @@ void VideoForm::mousePressEvent(QMouseEvent *event)
         QPointF mappedPos = vw->mapFrom(this, localPos.toPoint());
         QMouseEvent newEvent(event->type(), mappedPos, globalPos, event->button(), event->buttons(), event->modifiers());
         emit device->mouseEvent(&newEvent, m_frameSize, vw->size());
-
-        // debug keymap pos
-        if (event->button() == Qt::LeftButton) {
-            qreal x = localPos.x() / vw->size().width();
-            qreal y = localPos.y() / vw->size().height();
-            QString posTip = QString(R"("pos": {"x": %1, "y": %2})").arg(x).arg(y);
-            qInfo() << posTip.toStdString().c_str();
-        }
     } else {
         if (event->button() == Qt::LeftButton) {
             m_dragPosition = globalPos.toPoint() - frameGeometry().topLeft();
@@ -787,11 +780,11 @@ void VideoForm::mouseReleaseEvent(QMouseEvent *event)
 void VideoForm::mouseMoveEvent(QMouseEvent *event)
 {
 #if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
-        QPointF localPos = event->localPos();
-        QPointF globalPos = event->globalPos();
+    QPointF localPos = event->localPos();
+    QPointF globalPos = event->globalPos();
 #else
-        QPointF localPos = event->position();
-        QPointF globalPos = event->globalPosition();
+    QPointF localPos = event->position();
+    QPointF globalPos = event->globalPosition();
 #endif
     auto device = qsc::IDeviceManage::getInstance().getDevice(m_serial);
     QWidget *vw = videoWidget();
@@ -864,8 +857,17 @@ void VideoForm::wheelEvent(QWheelEvent *event)
         QPointF pos = vw->mapFrom(this, event->pos());
 
         QWheelEvent wheelEvent(
-            pos, event->globalPosF(), event->pixelDelta(), event->angleDelta(), event->delta(), event->orientation(),
-            event->buttons(), event->modifiers(), event->phase(), event->source(), event->inverted());
+            pos,
+            event->globalPosF(),
+            event->pixelDelta(),
+            event->angleDelta(),
+            event->delta(),
+            event->orientation(),
+            event->buttons(),
+            event->modifiers(),
+            event->phase(),
+            event->source(),
+            event->inverted());
 #endif
         emit device->wheelEvent(&wheelEvent, m_frameSize, vw->size());
     }
@@ -914,9 +916,7 @@ void VideoForm::showEvent(QShowEvent *event)
 {
     Q_UNUSED(event)
     if (!isFullScreen() && this->show_toolbar) {
-        QTimer::singleShot(500, this, [this](){
-            showToolForm(this->show_toolbar);
-        });
+        QTimer::singleShot(500, this, [this]() { showToolForm(this->show_toolbar); });
     }
 }
 

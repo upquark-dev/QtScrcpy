@@ -1,21 +1,21 @@
-﻿#include <QDebug>
-#include <QAbstractItemView>
+﻿#include <QAbstractItemView>
 #include <QCheckBox>
+#include <QComboBox>
+#include <QDebug>
 #include <QFile>
 #include <QFileDialog>
 #include <QFormLayout>
 #include <QGroupBox>
-#include <QHBoxLayout>
 #include <QGuiApplication>
+#include <QHBoxLayout>
 #include <QKeyEvent>
-#include <QComboBox>
 #include <QLineEdit>
 #include <QPushButton>
 #include <QRandomGenerator>
 #include <QRegularExpression>
+#include <QScreen>
 #include <QSharedPointer>
 #include <QSizePolicy>
-#include <QScreen>
 #include <QStyledItemDelegate>
 #include <QTabWidget>
 #include <QTime>
@@ -24,44 +24,31 @@
 
 #include <functional>
 
+#include "../groupcontroller/groupcontroller.h"
 #include "config.h"
 #include "dialog.h"
 #include "ui_dialog.h"
 #include "videoform.h"
-#include "../groupcontroller/groupcontroller.h"
 
 #ifdef Q_OS_WIN32
 #include "../util/winutils.h"
 #endif
 
-QString s_keyMapPath = "";
-
-namespace {
-class ComboBoxItemDelegate final : public QStyledItemDelegate
+namespace
 {
-public:
-    explicit ComboBoxItemDelegate(QObject *parent = nullptr) : QStyledItemDelegate(parent) {}
-
-    QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override
+    class ComboBoxItemDelegate final : public QStyledItemDelegate
     {
-        QSize hint = QStyledItemDelegate::sizeHint(option, index);
-        hint.setHeight(qMax(hint.height(), 30));
-        return hint;
-    }
-};
-} // namespace
+    public:
+        explicit ComboBoxItemDelegate(QObject *parent = nullptr) : QStyledItemDelegate(parent) {}
 
-const QString &getKeyMapPath()
-{
-    if (s_keyMapPath.isEmpty()) {
-        s_keyMapPath = QString::fromLocal8Bit(qgetenv("QTSCRCPY_KEYMAP_PATH"));
-        QFileInfo fileInfo(s_keyMapPath);
-        if (s_keyMapPath.isEmpty() || !fileInfo.isDir()) {
-            s_keyMapPath = QCoreApplication::applicationDirPath() + "/keymap";
+        QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override
+        {
+            QSize hint = QStyledItemDelegate::sizeHint(option, index);
+            hint.setHeight(qMax(hint.height(), 30));
+            return hint;
         }
-    }
-    return s_keyMapPath;
-}
+    };
+} // namespace
 
 Dialog::Dialog(QWidget *parent) : QWidget(parent), ui(new Ui::Widget)
 {
@@ -76,8 +63,7 @@ Dialog::Dialog(QWidget *parent) : QWidget(parent), ui(new Ui::Widget)
     // 这里明确提示需要重启服务端。
     connect(ui->audioForwardCheck, &QCheckBox::toggled, this, [this](bool checked) {
         if (ui->connectedPhoneList->count() > 0) {
-            outLog(tr("audio forwarding is now %1, restart the server to apply")
-                       .arg(checked ? "on" : "off"));
+            outLog(tr("audio forwarding is now %1, restart the server to apply").arg(checked ? "on" : "off"));
         }
     });
 
@@ -92,8 +78,7 @@ Dialog::Dialog(QWidget *parent) : QWidget(parent), ui(new Ui::Widget)
     on_useSingleModeCheck_clicked();
     if (QScreen *screen = QGuiApplication::primaryScreen()) {
         const QRect availableGeometry = screen->availableGeometry();
-        move(availableGeometry.x() + (availableGeometry.width() - width()) / 2,
-             availableGeometry.y() + (availableGeometry.height() - height()) / 2);
+        move(availableGeometry.x() + (availableGeometry.width() - width()) / 2, availableGeometry.y() + (availableGeometry.height() - height()) / 2);
     }
     on_updateDevice_clicked();
 
@@ -272,15 +257,13 @@ void Dialog::initUI()
     // 为deviceIpEdt添加右键菜单
     if (ui->deviceIpEdt->lineEdit()) {
         ui->deviceIpEdt->lineEdit()->setContextMenuPolicy(Qt::CustomContextMenu);
-        connect(ui->deviceIpEdt->lineEdit(), &QWidget::customContextMenuRequested,
-                this, &Dialog::showIpEditMenu);
+        connect(ui->deviceIpEdt->lineEdit(), &QWidget::customContextMenuRequested, this, &Dialog::showIpEditMenu);
     }
-    
+
     // 为devicePortEdt添加右键菜单
     if (ui->devicePortEdt->lineEdit()) {
         ui->devicePortEdt->lineEdit()->setContextMenuPolicy(Qt::CustomContextMenu);
-        connect(ui->devicePortEdt->lineEdit(), &QWidget::customContextMenuRequested,
-                this, &Dialog::showPortEditMenu);
+        connect(ui->devicePortEdt->lineEdit(), &QWidget::customContextMenuRequested, this, &Dialog::showPortEditMenu);
     }
     initAdvancedDisplayUi();
 
@@ -487,10 +470,9 @@ void Dialog::unlockDevice(const QString &serial)
 
     // 先查询锁屏状态：未锁屏则无需解锁
     auto *checkAdb = new qsc::AdbProcess(this);
-    connect(checkAdb, &qsc::AdbProcess::adbProcessResult, this,
-            [this, checkAdb, serial, password](qsc::AdbProcess::ADB_EXEC_RESULT cResult) {
-        if (cResult != qsc::AdbProcess::AER_SUCCESS_EXEC && cResult != qsc::AdbProcess::AER_ERROR_EXEC
-                && cResult != qsc::AdbProcess::AER_ERROR_START && cResult != qsc::AdbProcess::AER_ERROR_MISSING_BINARY) {
+    connect(checkAdb, &qsc::AdbProcess::adbProcessResult, this, [this, checkAdb, serial, password](qsc::AdbProcess::ADB_EXEC_RESULT cResult) {
+        if (cResult != qsc::AdbProcess::AER_SUCCESS_EXEC && cResult != qsc::AdbProcess::AER_ERROR_EXEC && cResult != qsc::AdbProcess::AER_ERROR_START
+            && cResult != qsc::AdbProcess::AER_ERROR_MISSING_BINARY) {
             // 忽略非终态信号（如 AER_SUCCESS_START）
             return;
         }
@@ -538,8 +520,8 @@ void Dialog::runUnlockSteps(const QString &serial, const QString &password)
             // 查询 keyguard 状态确认解锁结果
             auto *checkAdb = new qsc::AdbProcess(this);
             connect(checkAdb, &qsc::AdbProcess::adbProcessResult, this, [this, checkAdb](qsc::AdbProcess::ADB_EXEC_RESULT cResult) {
-                if (cResult != qsc::AdbProcess::AER_SUCCESS_EXEC && cResult != qsc::AdbProcess::AER_ERROR_EXEC
-                        && cResult != qsc::AdbProcess::AER_ERROR_START && cResult != qsc::AdbProcess::AER_ERROR_MISSING_BINARY) {
+                if (cResult != qsc::AdbProcess::AER_SUCCESS_EXEC && cResult != qsc::AdbProcess::AER_ERROR_EXEC && cResult != qsc::AdbProcess::AER_ERROR_START
+                    && cResult != qsc::AdbProcess::AER_ERROR_MISSING_BINARY) {
                     // 忽略非终态信号（如 AER_SUCCESS_START）
                     return;
                 }
@@ -561,10 +543,9 @@ void Dialog::runUnlockSteps(const QString &serial, const QString &password)
         }
         outLog(steps->at(index).log, false);
         auto *stepAdb = new qsc::AdbProcess(this);
-        connect(stepAdb, &qsc::AdbProcess::adbProcessResult, this,
-                [this, stepAdb, steps, runStep, index, serial](qsc::AdbProcess::ADB_EXEC_RESULT result) {
-            if (result != qsc::AdbProcess::AER_SUCCESS_EXEC && result != qsc::AdbProcess::AER_ERROR_EXEC
-                    && result != qsc::AdbProcess::AER_ERROR_START && result != qsc::AdbProcess::AER_ERROR_MISSING_BINARY) {
+        connect(stepAdb, &qsc::AdbProcess::adbProcessResult, this, [this, stepAdb, steps, runStep, index, serial](qsc::AdbProcess::ADB_EXEC_RESULT result) {
+            if (result != qsc::AdbProcess::AER_SUCCESS_EXEC && result != qsc::AdbProcess::AER_ERROR_EXEC && result != qsc::AdbProcess::AER_ERROR_START
+                && result != qsc::AdbProcess::AER_ERROR_MISSING_BINARY) {
                 // 忽略非终态信号（如 AER_SUCCESS_START）
                 return;
             }
@@ -574,9 +555,7 @@ void Dialog::runUnlockSteps(const QString &serial, const QString &password)
                 return;
             }
             // 步骤间加短暂延时，等待系统动画/界面就绪
-            QTimer::singleShot(600, this, [this, steps, runStep, index]() {
-                (*runStep)(index + 1);
-            });
+            QTimer::singleShot(600, this, [this, steps, runStep, index]() { (*runStep)(index + 1); });
         });
         stepAdb->execute(serial, steps->at(index).args);
     };
@@ -601,9 +580,7 @@ void Dialog::on_clearLockBtn_clicked()
 
     // 清除是不可逆操作，二次确认
     const QMessageBox::StandardButton button = QMessageBox::question(
-                this, tr("清除锁屏"),
-                tr("此操作将永久删除手机上的锁屏密码。\n确定要清除吗？"),
-                QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+        this, tr("清除锁屏"), tr("此操作将永久删除手机上的锁屏密码。\n确定要清除吗？"), QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
     if (button != QMessageBox::Yes) {
         return;
     }
@@ -766,23 +743,6 @@ void Dialog::delayMs(int ms)
     }
 }
 
-QString Dialog::getGameScript(const QString &fileName)
-{
-    if (fileName.isEmpty()) {
-        return "";
-    }
-
-    QFile loadFile(getKeyMapPath() + "/" + fileName);
-    if (!loadFile.open(QIODevice::ReadOnly)) {
-        outLog("open file failed:" + fileName, true);
-        return "";
-    }
-
-    QString ret = loadFile.readAll();
-    loadFile.close();
-    return ret;
-}
-
 void Dialog::slotActivated(QSystemTrayIcon::ActivationReason reason)
 {
     switch (reason) {
@@ -801,10 +761,7 @@ void Dialog::closeEvent(QCloseEvent *event)
     this->hide();
     if (!Config::getInstance().getTrayMessageShown()) {
         Config::getInstance().setTrayMessageShown(true);
-        m_hideIcon->showMessage(tr("Notice"),
-                                tr("Hidden here!"),
-                                QSystemTrayIcon::Information,
-                                3000);
+        m_hideIcon->showMessage(tr("Notice"), tr("Hidden here!"), QSystemTrayIcon::Information, 3000);
     }
     event->ignore();
 }
@@ -826,9 +783,6 @@ void Dialog::updateVideoSourceUi()
     ui->refreshCameraBtn->setEnabled(camera);
     ui->closeScreenCheck->setEnabled(!camera);
     ui->stayAwakeCheck->setEnabled(!camera);
-    ui->gameBox->setEnabled(!camera);
-    ui->refreshGameScriptBtn->setEnabled(!camera);
-    ui->applyScriptBtn->setEnabled(!camera);
     // 音频随投屏启动；相机采集没有播放捕获目标
     ui->audioForwardCheck->setEnabled(!camera);
     if (m_advancedDisplayGroup) {
@@ -854,9 +808,7 @@ void Dialog::on_startServerBtn_clicked()
     // on devices with Android >= 10, the capture frame rate can be limited
     params.maxFps = static_cast<quint32>(Config::getInstance().getMaxFps());
     params.videoSource = static_cast<qsc::VideoSource>(ui->videoSourceBox->currentIndex());
-    params.cameraFacing = ui->cameraFacingBox->currentIndex() == 1
-            ? qsc::CAMERA_FACING_FRONT
-            : qsc::CAMERA_FACING_BACK;
+    params.cameraFacing = ui->cameraFacingBox->currentIndex() == 1 ? qsc::CAMERA_FACING_FRONT : qsc::CAMERA_FACING_BACK;
     params.cameraId = ui->cameraFacingBox->currentData().toString();
     const bool camera = params.videoSource == qsc::VIDEO_SOURCE_CAMERA;
     params.closeScreen = !camera && ui->closeScreenCheck->isChecked();
@@ -881,13 +833,12 @@ void Dialog::on_startServerBtn_clicked()
     // 需要重新启动服务端。这点和音频开关是同一个坑，写进日志避免误判。
     if (!camera) {
         outLog(tr("record settings: path=\"%1\" format=%2 (apply to new sessions only)")
-                        .arg(params.recordPath.isEmpty() ? tr("<not set>") : params.recordPath)
-                        .arg(params.recordFileFormat));
+                   .arg(params.recordPath.isEmpty() ? tr("<not set>") : params.recordPath)
+                   .arg(params.recordFileFormat));
     }
     params.serverLocalPath = getServerPath();
     params.serverRemotePath = Config::getInstance().getServerPath();
     params.pushFilePath = Config::getInstance().getPushFilePath();
-    params.gameScript = camera ? QString() : getGameScript(ui->gameBox->currentText());
     params.logLevel = Config::getInstance().getLogLevel();
     // Apply an encoder preset (when a preset mode is selected) or the ini default.
     const int codecModeIndex = ui->codecModeBox->currentIndex();
@@ -919,9 +870,7 @@ void Dialog::on_startServerBtn_clicked()
     // 收紧到 2s（用户显式设置过该键时尊重用户）。服务端逐项 setInteger，
     // 追加在后面的同名键生效。
     if (!params.codecOptions.contains("i-frame-interval")) {
-        params.codecOptions = params.codecOptions.isEmpty()
-                                      ? QString("i-frame-interval=2")
-                                      : params.codecOptions + ",i-frame-interval=2";
+        params.codecOptions = params.codecOptions.isEmpty() ? QString("i-frame-interval=2") : params.codecOptions + ",i-frame-interval=2";
     }
     params.scid = QRandomGenerator::global()->bounded(1, 10000) & 0x7FFFFFFF;
     params.decodeMode = ui->decodeModeBox->currentIndex();
@@ -935,8 +884,7 @@ void Dialog::on_startServerBtn_clicked()
     // 把音频开关的最终取值写进界面日志。无声问题里有两大类原因：
     // 一是这一步取到了 false（勾选时机/相机模式），二是 true 但采集或播放链路有问题。
     // 先看这行日志就能把两类原因分开，不必再猜。
-    outLog(tr("audio forwarding: %1 (device speaker muted while capturing; recording carries sound only when on)")
-                   .arg(params.audio ? "on" : "off"));
+    outLog(tr("audio forwarding: %1 (device speaker muted while capturing; recording carries sound only when on)").arg(params.audio ? "on" : "off"));
     // Disabled widgets may remain checked from persisted settings. Advanced
     // display options are not valid for camera capture, so never copy them
     // into camera session parameters.
@@ -983,8 +931,7 @@ void Dialog::on_startServerBtn_clicked()
     }
 
     auto *versionAdb = new qsc::AdbProcess(this);
-    connect(versionAdb, &qsc::AdbProcess::adbProcessResult, this,
-            [this, versionAdb, camera, params](qsc::AdbProcess::ADB_EXEC_RESULT result) {
+    connect(versionAdb, &qsc::AdbProcess::adbProcessResult, this, [this, versionAdb, camera, params](qsc::AdbProcess::ADB_EXEC_RESULT result) {
         if (result == qsc::AdbProcess::AER_SUCCESS_EXEC) {
             bool ok = false;
             const int sdk = versionAdb->getStdOut().trimmed().toInt(&ok);
@@ -992,13 +939,11 @@ void Dialog::on_startServerBtn_clicked()
             if (ok && sdk >= minimumSdk) {
                 qsc::IDeviceManage::getInstance().connectDevice(params);
             } else {
-                outLog(camera ? tr("camera preview requires Android 12 or later")
-                              : tr("virtual display requires Android 10 or later"));
+                outLog(camera ? tr("camera preview requires Android 12 or later") : tr("virtual display requires Android 10 or later"));
             }
             versionAdb->deleteLater();
-        } else if (result == qsc::AdbProcess::AER_ERROR_EXEC
-                   || result == qsc::AdbProcess::AER_ERROR_START
-                   || result == qsc::AdbProcess::AER_ERROR_MISSING_BINARY) {
+        } else if (
+            result == qsc::AdbProcess::AER_ERROR_EXEC || result == qsc::AdbProcess::AER_ERROR_START || result == qsc::AdbProcess::AER_ERROR_MISSING_BINARY) {
             outLog(tr("could not verify Android version for camera preview"));
             versionAdb->deleteLater();
         }
@@ -1022,14 +967,12 @@ void Dialog::on_refreshCameraBtn_clicked()
     ui->refreshCameraBtn->setText("...");
 
     auto *pushAdb = new qsc::AdbProcess(this);
-    connect(pushAdb, &qsc::AdbProcess::adbProcessResult, this,
-            [this, pushAdb, serial](qsc::AdbProcess::ADB_EXEC_RESULT result) {
+    connect(pushAdb, &qsc::AdbProcess::adbProcessResult, this, [this, pushAdb, serial](qsc::AdbProcess::ADB_EXEC_RESULT result) {
         if (result == qsc::AdbProcess::AER_SUCCESS_EXEC) {
             pushAdb->deleteLater();
 
             auto *listAdb = new qsc::AdbProcess(this);
-            connect(listAdb, &qsc::AdbProcess::adbProcessResult, this,
-                    [this, listAdb](qsc::AdbProcess::ADB_EXEC_RESULT listResult) {
+            connect(listAdb, &qsc::AdbProcess::adbProcessResult, this, [this, listAdb](qsc::AdbProcess::ADB_EXEC_RESULT listResult) {
                 if (listResult == qsc::AdbProcess::AER_SUCCESS_START) {
                     return;
                 }
@@ -1071,9 +1014,8 @@ void Dialog::on_refreshCameraBtn_clicked()
             args << "app_process" << "/" << "com.genymobile.scrcpy.Server" << "4.1";
             args << "list_cameras=true" << "log_level=info";
             listAdb->execute(serial, args);
-        } else if (result == qsc::AdbProcess::AER_ERROR_EXEC
-                   || result == qsc::AdbProcess::AER_ERROR_START
-                   || result == qsc::AdbProcess::AER_ERROR_MISSING_BINARY) {
+        } else if (
+            result == qsc::AdbProcess::AER_ERROR_EXEC || result == qsc::AdbProcess::AER_ERROR_START || result == qsc::AdbProcess::AER_ERROR_MISSING_BINARY) {
             ui->refreshCameraBtn->setText(tr("refresh"));
             ui->refreshCameraBtn->setEnabled(ui->videoSourceBox->currentIndex() == qsc::VIDEO_SOURCE_CAMERA);
             outLog(tr("camera refresh failed"));
@@ -1104,14 +1046,12 @@ void Dialog::on_refreshAppsBtn_clicked()
     };
 
     auto *pushAdb = new qsc::AdbProcess(this);
-    connect(pushAdb, &qsc::AdbProcess::adbProcessResult, this,
-            [this, pushAdb, serial, restoreRefreshButton](qsc::AdbProcess::ADB_EXEC_RESULT result) {
+    connect(pushAdb, &qsc::AdbProcess::adbProcessResult, this, [this, pushAdb, serial, restoreRefreshButton](qsc::AdbProcess::ADB_EXEC_RESULT result) {
         if (result == qsc::AdbProcess::AER_SUCCESS_EXEC) {
             pushAdb->deleteLater();
 
             auto *listAdb = new qsc::AdbProcess(this);
-            connect(listAdb, &qsc::AdbProcess::adbProcessResult, this,
-                    [this, listAdb, restoreRefreshButton](qsc::AdbProcess::ADB_EXEC_RESULT listResult) {
+            connect(listAdb, &qsc::AdbProcess::adbProcessResult, this, [this, listAdb, restoreRefreshButton](qsc::AdbProcess::ADB_EXEC_RESULT listResult) {
                 if (listResult == qsc::AdbProcess::AER_SUCCESS_START) {
                     return;
                 }
@@ -1123,13 +1063,10 @@ void Dialog::on_refreshAppsBtn_clicked()
                     return;
                 }
 
-                const QString selected = m_startAppBox->currentData().toString().isEmpty()
-                        ? m_startAppBox->currentText().trimmed()
-                        : m_startAppBox->currentData().toString();
+                const QString selected
+                    = m_startAppBox->currentData().toString().isEmpty() ? m_startAppBox->currentText().trimmed() : m_startAppBox->currentData().toString();
                 const QString output = listAdb->getStdOut() + '\n' + listAdb->getErrorOut();
-                const QRegularExpression pattern(
-                        R"(^\s*[\*\-]\s+(.+?)\s+([A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)+)\s*$)",
-                        QRegularExpression::MultilineOption);
+                const QRegularExpression pattern(R"(^\s*[\*\-]\s+(.+?)\s+([A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)+)\s*$)", QRegularExpression::MultilineOption);
                 QRegularExpressionMatchIterator matches = pattern.globalMatch(output);
 
                 m_startAppBox->clear();
@@ -1159,9 +1096,8 @@ void Dialog::on_refreshAppsBtn_clicked()
             args << "app_process" << "/" << "com.genymobile.scrcpy.Server" << "4.1";
             args << "list_apps=true" << "log_level=info";
             listAdb->execute(serial, args);
-        } else if (result == qsc::AdbProcess::AER_ERROR_EXEC
-                   || result == qsc::AdbProcess::AER_ERROR_START
-                   || result == qsc::AdbProcess::AER_ERROR_MISSING_BINARY) {
+        } else if (
+            result == qsc::AdbProcess::AER_ERROR_EXEC || result == qsc::AdbProcess::AER_ERROR_START || result == qsc::AdbProcess::AER_ERROR_MISSING_BINARY) {
             restoreRefreshButton();
             outLog(tr("app refresh failed"));
             pushAdb->deleteLater();
@@ -1204,7 +1140,7 @@ void Dialog::on_wirelessConnectBtn_clicked()
     if (!ip.isEmpty()) {
         saveIpHistory(ip);
     }
-    
+
     // 保存端口历史记录
     QString port = addr.split(":").last();
     if (!port.isEmpty() && port != ip) {
@@ -1308,12 +1244,12 @@ void Dialog::onDeviceConnected(bool success, const QString &serial, const QStrin
     if (!success) {
         return;
     }
-    auto videoForm = new VideoForm(ui->framelessCheck->isChecked(), Config::getInstance().getSkin(), ui->showToolbar->isChecked(), ui->decodeModeBox->currentIndex());
+    auto videoForm
+        = new VideoForm(ui->framelessCheck->isChecked(), Config::getInstance().getSkin(), ui->showToolbar->isChecked(), ui->decodeModeBox->currentIndex());
     videoForm->setSerial(serial);
 
-    qsc::IDeviceManage::getInstance().getDevice(serial)->setUserData(static_cast<void*>(videoForm));
+    qsc::IDeviceManage::getInstance().getDevice(serial)->setUserData(static_cast<void *>(videoForm));
     qsc::IDeviceManage::getInstance().getDevice(serial)->registerDeviceObserver(videoForm);
-
 
     videoForm->showFPS(ui->fpsCheck->isChecked());
 
@@ -1344,7 +1280,7 @@ void Dialog::onDeviceConnected(bool success, const QString &serial, const QStrin
 
 #ifdef Q_OS_WIN32
     // windows是show太早可以看到resize的过程
-    QTimer::singleShot(200, videoForm, [videoForm](){videoForm->show();});
+    QTimer::singleShot(200, videoForm, [videoForm]() { videoForm->show(); });
 #endif
 
     GroupController::instance().addDevice(serial);
@@ -1364,7 +1300,7 @@ void Dialog::onDeviceDisconnected(QString serial)
     }
     auto data = device->getUserData();
     if (data) {
-        VideoForm* vf = static_cast<VideoForm*>(data);
+        VideoForm *vf = static_cast<VideoForm *>(data);
         qsc::IDeviceManage::getInstance().getDevice(serial)->deRegisterDeviceObserver(vf);
         vf->close();
         vf->deleteLater();
@@ -1416,35 +1352,6 @@ void Dialog::on_stopAllServerBtn_clicked()
     qsc::IDeviceManage::getInstance().disconnectAllDevice();
 }
 
-void Dialog::on_refreshGameScriptBtn_clicked()
-{
-    ui->gameBox->clear();
-    QDir dir(getKeyMapPath());
-    if (!dir.exists()) {
-        outLog("keymap directory not find", true);
-        return;
-    }
-    dir.setFilter(QDir::Files | QDir::NoSymLinks);
-    QFileInfoList list = dir.entryInfoList();
-    QFileInfo fileInfo;
-    int size = list.size();
-    for (int i = 0; i < size; ++i) {
-        fileInfo = list.at(i);
-        ui->gameBox->addItem(fileInfo.fileName());
-    }
-}
-
-void Dialog::on_applyScriptBtn_clicked()
-{
-    auto curSerial = ui->serialBox->currentText().trimmed();
-    auto device = qsc::IDeviceManage::getInstance().getDevice(curSerial);
-    if (!device) {
-        return;
-    }
-
-    device->updateScript(getGameScript(ui->gameBox->currentText()));
-}
-
 void Dialog::on_usbConnectBtn_clicked()
 {
     on_stopAllServerBtn_clicked();
@@ -1464,7 +1371,8 @@ void Dialog::on_usbConnectBtn_clicked()
 
 int Dialog::findDeviceFromeSerialBox(bool wifi)
 {
-    QString regStr = "\\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\:([0-9]|[1-9]\\d|[1-9]\\d{2}|[1-9]\\d{3}|[1-5]\\d{4}|6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])\\b";
+    QString regStr = "\\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\:([0-9]|[1-9]\\d|[1-9]\\d{2}|[1-9]\\d{3}|["
+                     "1-5]\\d{4}|6[0-4]\\d{3}|65[0-4]\\d{2}|655[0-2]\\d|6553[0-5])\\b";
 #if (QT_VERSION < QT_VERSION_CHECK(6, 0, 0))
     QRegExp regIP(regStr);
 #else
@@ -1564,8 +1472,7 @@ void Dialog::on_serialBox_currentIndexChanged(const QString &arg1)
 
 quint32 Dialog::getBitRate()
 {
-    return ui->bitRateEdit->text().trimmed().toUInt() *
-            (ui->bitRateBox->currentText() == QString("Mbps") ? 1000000 : 1000);
+    return ui->bitRateEdit->text().trimmed().toUInt() * (ui->bitRateBox->currentText() == QString("Mbps") ? 1000000 : 1000);
 }
 
 const QString &Dialog::getServerPath()
@@ -1608,9 +1515,9 @@ void Dialog::saveIpHistory(const QString &ip)
     if (ip.isEmpty()) {
         return;
     }
-    
+
     Config::getInstance().saveIpHistory(ip);
-    
+
     // 更新ComboBox
     loadIpHistory();
     ui->deviceIpEdt->setCurrentText(ip);
@@ -1620,13 +1527,13 @@ void Dialog::showIpEditMenu(const QPoint &pos)
 {
     QMenu *menu = ui->deviceIpEdt->lineEdit()->createStandardContextMenu();
     menu->addSeparator();
-    
+
     QAction *clearHistoryAction = new QAction(tr("Clear History"), menu);
     connect(clearHistoryAction, &QAction::triggered, this, [this]() {
         Config::getInstance().clearIpHistory();
         loadIpHistory();
     });
-    
+
     menu->addAction(clearHistoryAction);
     menu->exec(ui->deviceIpEdt->lineEdit()->mapToGlobal(pos));
     delete menu;
@@ -1650,9 +1557,9 @@ void Dialog::savePortHistory(const QString &port)
     if (port.isEmpty()) {
         return;
     }
-    
+
     Config::getInstance().savePortHistory(port);
-    
+
     // 更新ComboBox
     loadPortHistory();
     ui->devicePortEdt->setCurrentText(port);
@@ -1662,18 +1569,17 @@ void Dialog::showPortEditMenu(const QPoint &pos)
 {
     QMenu *menu = ui->devicePortEdt->lineEdit()->createStandardContextMenu();
     menu->addSeparator();
-    
+
     QAction *clearHistoryAction = new QAction(tr("Clear History"), menu);
     connect(clearHistoryAction, &QAction::triggered, this, [this]() {
         Config::getInstance().clearPortHistory();
         loadPortHistory();
     });
-    
+
     menu->addAction(clearHistoryAction);
     menu->exec(ui->devicePortEdt->lineEdit()->mapToGlobal(pos));
     delete menu;
 }
-
 
 void Dialog::on_codecModeBox_currentIndexChanged(int index)
 {
@@ -1748,8 +1654,7 @@ void Dialog::on_presetConfigBtn_clicked()
         m_presetDialog->setLevel(bootConfig.presetLevel);
 
         // Sync bitrate & maxSize UI in real-time as the user switches tiers.
-        connect(m_presetDialog.data(), &PresetConfigDialog::levelChanged,
-                this, &Dialog::syncPresetLevelToUi);
+        connect(m_presetDialog.data(), &PresetConfigDialog::levelChanged, this, &Dialog::syncPresetLevelToUi);
     }
 
     m_presetDialog->exec();

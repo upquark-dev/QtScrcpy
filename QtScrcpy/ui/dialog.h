@@ -1,17 +1,16 @@
 ﻿#ifndef DIALOG_H
 #define DIALOG_H
 
-#include <QWidget>
-#include <QPointer>
-#include <QMessageBox>
-#include <QMenu>
-#include <QSystemTrayIcon>
 #include <QListWidget>
+#include <QMenu>
+#include <QMessageBox>
+#include <QPointer>
+#include <QSystemTrayIcon>
 #include <QTimer>
+#include <QWidget>
 
-
-#include "adbprocess.h"
 #include "../QtScrcpyCore/include/QtScrcpyCore.h"
+#include "adbprocess.h"
 #include "presetconfigdialog.h"
 
 namespace Ui
@@ -38,7 +37,7 @@ public:
     void getIPbyIp();
 
 private slots:
-    void onDeviceConnected(bool success, const QString& serial, const QString& deviceName, const QSize& size);
+    void onDeviceConnected(bool success, const QString &serial, const QString &deviceName, const QSize &size);
     void onDeviceDisconnected(QString serial);
 
     void on_updateDevice_clicked();
@@ -54,8 +53,6 @@ private slots:
     void on_stopAdbBtn_clicked();
     void on_clearOut_clicked();
     void on_stopAllServerBtn_clicked();
-    void on_refreshGameScriptBtn_clicked();
-    void on_applyScriptBtn_clicked();
     void on_usbConnectBtn_clicked();
     void on_wifiConnectBtn_clicked();
     void on_connectedPhoneList_itemDoubleClicked(QListWidgetItem *item);
@@ -82,7 +79,6 @@ private:
     void updateBootConfig(bool toView = true);
     void execAdbCmd();
     void delayMs(int ms);
-    QString getGameScript(const QString &fileName);
     void slotActivated(QSystemTrayIcon::ActivationReason reason);
     int findDeviceFromeSerialBox(bool wifi);
     quint32 getBitRate();
