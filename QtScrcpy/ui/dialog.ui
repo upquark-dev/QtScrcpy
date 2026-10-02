@@ -799,22 +799,6 @@
               </property>
              </widget>
             </item>
-            <item row="0" column="1">
-             <widget class="QCheckBox" name="notDisplayCheck">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="text">
-               <string>background record</string>
-              </property>
-              <property name="checkable">
-               <bool>false</bool>
-              </property>
-             </widget>
-            </item>
             <item row="1" column="0">
              <widget class="QCheckBox" name="alwaysTopCheck">
               <property name="sizePolicy">
@@ -828,19 +812,6 @@
               </property>
               <property name="checked">
                <bool>false</bool>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="0">
-             <widget class="QCheckBox" name="recordScreenCheck">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="text">
-               <string>record screen</string>
               </property>
              </widget>
             </item>
@@ -1176,31 +1147,27 @@
           </widget>
          </item>
          <item>
-          <widget class="QWidget" name="usbWidget3" native="true">
-           <layout class="QHBoxLayout" name="horizontalLayout_12">
-            <property name="leftMargin">
-             <number>0</number>
-            </property>
-            <property name="topMargin">
-             <number>0</number>
-            </property>
-            <property name="rightMargin">
-             <number>0</number>
-            </property>
-            <property name="bottomMargin">
-             <number>0</number>
-            </property>
-            <item>
-             <widget class="QCheckBox" name="audioForwardCheck">
-              <property name="toolTip">
-               <string>Forward the device audio to the computer. Requires Android 11 or later; the default playback capture source requires Android 13 or later.</string>
-              </property>
-              <property name="text">
-               <string>audio</string>
-              </property>
-             </widget>
-            </item>
-           </layout>
+          <widget class="QTabWidget" name="audioTabWidget">
+           <property name="currentIndex">
+            <number>0</number>
+           </property>
+           <widget class="QWidget" name="audioTab">
+            <attribute name="title">
+             <string>音频</string>
+            </attribute>
+            <layout class="QHBoxLayout" name="audioTabLayout">
+             <item>
+              <widget class="QCheckBox" name="audioForwardCheck">
+               <property name="toolTip">
+                <string>将设备声音转发到电脑播放。需要 Android 11+，默认 playback 采集源需要 Android 13+。录制带声音同样依赖此音频通道。</string>
+               </property>
+               <property name="text">
+                <string>音频</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
           </widget>
          </item>
         </layout>

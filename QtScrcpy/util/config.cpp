@@ -63,12 +63,6 @@
 #define COMMON_LOCK_ORIENTATION_INDEX_KEY "LockDirectionIndex"
 #define COMMON_LOCK_ORIENTATION_INDEX_DEF 0
 
-#define COMMON_RECORD_SCREEN_KEY "RecordScreen"
-#define COMMON_RECORD_SCREEN_DEF false
-
-#define COMMON_RECORD_BACKGROUD_KEY "RecordBackGround"
-#define COMMON_RECORD_BACKGROUD_DEF false
-
 #define COMMON_REVERSE_CONNECT_KEY "ReverseConnect"
 #define COMMON_REVERSE_CONNECT_DEF true
 
@@ -186,8 +180,6 @@ void Config::setUserBootConfig(const UserBootConfig &config)
     m_userData->setValue(COMMON_RECORD_FORMAT_INDEX_KEY, config.recordFormatIndex);
     m_userData->setValue(COMMON_FRAMELESS_WINDOW_KEY, config.framelessWindow);
     m_userData->setValue(COMMON_LOCK_ORIENTATION_INDEX_KEY, config.lockOrientationIndex);
-    m_userData->setValue(COMMON_RECORD_SCREEN_KEY, config.recordScreen);
-    m_userData->setValue(COMMON_RECORD_BACKGROUD_KEY, config.recordBackground);
     m_userData->setValue(COMMON_REVERSE_CONNECT_KEY, config.reverseConnect);
     m_userData->setValue(COMMON_SHOW_FPS_KEY, config.showFPS);
     m_userData->setValue(COMMON_WINDOW_ON_TOP_KEY, config.windowOnTop);
@@ -230,8 +222,6 @@ UserBootConfig Config::getUserBootConfig()
     config.recordFormatIndex = m_userData->value(COMMON_RECORD_FORMAT_INDEX_KEY, COMMON_RECORD_FORMAT_INDEX_DEF).toInt();
     config.lockOrientationIndex = m_userData->value(COMMON_LOCK_ORIENTATION_INDEX_KEY, COMMON_LOCK_ORIENTATION_INDEX_DEF).toInt();
     config.framelessWindow = m_userData->value(COMMON_FRAMELESS_WINDOW_KEY, COMMON_FRAMELESS_WINDOW_DEF).toBool();
-    config.recordScreen = m_userData->value(COMMON_RECORD_SCREEN_KEY, COMMON_RECORD_SCREEN_DEF).toBool();
-    config.recordBackground = m_userData->value(COMMON_RECORD_BACKGROUD_KEY, COMMON_RECORD_BACKGROUD_DEF).toBool();
     config.reverseConnect = m_userData->value(COMMON_REVERSE_CONNECT_KEY, COMMON_REVERSE_CONNECT_DEF).toBool();
     config.showFPS = m_userData->value(COMMON_SHOW_FPS_KEY, COMMON_SHOW_FPS_DEF).toBool();
     config.windowOnTop = m_userData->value(COMMON_WINDOW_ON_TOP_KEY, COMMON_WINDOW_ON_TOP_DEF).toBool();

@@ -12,8 +12,6 @@ struct UserBootConfig
     int maxSizeIndex = 0;
     int recordFormatIndex = 0;
     int lockOrientationIndex = 0;
-    bool recordScreen     = false;
-    bool recordBackground = false;
     bool reverseConnect   = true;
     bool showFPS          = false;
     bool windowOnTop      = false;

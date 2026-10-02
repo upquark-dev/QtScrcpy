@@ -56,7 +56,6 @@ private slots:
     void on_stopAllServerBtn_clicked();
     void on_refreshGameScriptBtn_clicked();
     void on_applyScriptBtn_clicked();
-    void on_recordScreenCheck_clicked(bool checked);
     void on_usbConnectBtn_clicked();
     void on_wifiConnectBtn_clicked();
     void on_connectedPhoneList_itemDoubleClicked(QListWidgetItem *item);

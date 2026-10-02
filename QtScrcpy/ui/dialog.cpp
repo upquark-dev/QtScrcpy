@@ -426,14 +426,14 @@ void Dialog::updateAdvancedDisplayUi()
 
 void Dialog::initUnlockUi()
 {
-    m_unlockGroup = new QGroupBox(tr("Unlock"), this);
+    m_unlockGroup = new QGroupBox(tr("解锁"), this);
     auto *groupLayout = new QVBoxLayout(m_unlockGroup);
     groupLayout->setSpacing(3);
     groupLayout->setContentsMargins(5, 5, 5, 5);
 
     auto *firstRow = new QHBoxLayout();
     firstRow->setSpacing(3);
-    auto *label = new QLabel(tr("lock password:"), m_unlockGroup);
+    auto *label = new QLabel(tr("锁屏密码:"), m_unlockGroup);
     label->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
 
     m_lockPasswordEdt = new QLineEdit(m_unlockGroup);
@@ -441,10 +441,10 @@ void Dialog::initUnlockUi()
     m_lockPasswordEdt->setPlaceholderText(tr("PIN / password of the lock screen"));
     m_lockPasswordEdt->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Preferred);
 
-    m_unlockBtn = new QPushButton(tr("unlock"), m_unlockGroup);
+    m_unlockBtn = new QPushButton(tr("解锁"), m_unlockGroup);
     m_unlockBtn->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
 
-    m_clearLockBtn = new QPushButton(tr("clear lock"), m_unlockGroup);
+    m_clearLockBtn = new QPushButton(tr("清除锁屏密码"), m_unlockGroup);
     m_clearLockBtn->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
 
     firstRow->addWidget(label);
@@ -454,8 +454,8 @@ void Dialog::initUnlockUi()
 
     auto *secondRow = new QHBoxLayout();
     secondRow->setSpacing(6);
-    m_savePasswordCheck = new QCheckBox(tr("save password"), m_unlockGroup);
-    m_autoUnlockCheck = new QCheckBox(tr("auto unlock on connect"), m_unlockGroup);
+    m_savePasswordCheck = new QCheckBox(tr("保存密码"), m_unlockGroup);
+    m_autoUnlockCheck = new QCheckBox(tr("连接后自动解锁"), m_unlockGroup);
     secondRow->addWidget(m_savePasswordCheck);
     secondRow->addWidget(m_autoUnlockCheck);
     secondRow->addStretch();
@@ -639,8 +639,6 @@ void Dialog::updateBootConfig(bool toView)
         ui->recordPathEdt->setText(config.recordPath);
         ui->lockOrientationBox->setCurrentIndex(config.lockOrientationIndex);
         ui->framelessCheck->setChecked(config.framelessWindow);
-        ui->recordScreenCheck->setChecked(config.recordScreen);
-        ui->notDisplayCheck->setChecked(config.recordBackground);
         ui->useReverseCheck->setChecked(config.reverseConnect);
         ui->fpsCheck->setChecked(config.showFPS);
         ui->alwaysTopCheck->setChecked(config.windowOnTop);
@@ -687,8 +685,6 @@ void Dialog::updateBootConfig(bool toView)
         config.recordFormatIndex = ui->formatBox->currentIndex();
         config.recordPath = ui->recordPathEdt->text();
         config.lockOrientationIndex = ui->lockOrientationBox->currentIndex();
-        config.recordScreen = ui->recordScreenCheck->isChecked();
-        config.recordBackground = ui->notDisplayCheck->isChecked();
         config.reverseConnect = ui->useReverseCheck->isChecked();
         config.showFPS = ui->fpsCheck->isChecked();
         config.windowOnTop = ui->alwaysTopCheck->isChecked();
@@ -865,7 +861,6 @@ void Dialog::on_startServerBtn_clicked()
     const bool camera = params.videoSource == qsc::VIDEO_SOURCE_CAMERA;
     params.closeScreen = !camera && ui->closeScreenCheck->isChecked();
     params.useReverse = ui->useReverseCheck->isChecked();
-    params.display = !ui->notDisplayCheck->isChecked();
     params.renderExpiredFrames = Config::getInstance().getRenderExpiredFrames();
     if (ui->lockOrientationBox->currentIndex() > 0) {
         params.captureOrientationLock = 1;
@@ -878,14 +873,13 @@ void Dialog::on_startServerBtn_clicked()
         params.captureOrientation = 90;
     }
     params.stayAwake = !camera && ui->stayAwakeCheck->isChecked();
-    params.recordFile = ui->recordScreenCheck->isChecked();
     params.recordPath = ui->recordPathEdt->text().trimmed();
     params.recordFileFormat = ui->formatBox->currentText().trimmed();
     // 录制由投屏窗口工具栏的 recordBtn 手动开始/停止，这里的路径与格式只是
     // 录制的默认配置，只在按下按钮那一刻才被 Device 读取一次。
     // 也就是说：投屏之后再改保存目录/格式，对已建立的会话不生效，
     // 需要重新启动服务端。这点和音频开关是同一个坑，写进日志避免误判。
-    if (params.recordFile && !camera) {
+    if (!camera) {
         outLog(tr("record settings: path=\"%1\" format=%2 (apply to new sessions only)")
                         .arg(params.recordPath.isEmpty() ? tr("<not set>") : params.recordPath)
                         .arg(params.recordFileFormat));
@@ -1400,7 +1394,6 @@ void Dialog::on_selectRecordPathBtn_clicked()
 void Dialog::on_recordPathEdt_textChanged(const QString &arg1)
 {
     ui->recordPathEdt->setToolTip(arg1.trimmed());
-    ui->notDisplayCheck->setCheckable(!arg1.trimmed().isEmpty());
 }
 
 void Dialog::on_adbCommandBtn_clicked()
@@ -1450,19 +1443,6 @@ void Dialog::on_applyScriptBtn_clicked()
     }
 
     device->updateScript(getGameScript(ui->gameBox->currentText()));
-}
-
-void Dialog::on_recordScreenCheck_clicked(bool checked)
-{
-    if (!checked) {
-        return;
-    }
-
-    QString fileDir(ui->recordPathEdt->text().trimmed());
-    if (fileDir.isEmpty()) {
-        qWarning() << "please select record save path!!!";
-        ui->recordScreenCheck->setChecked(false);
-    }
 }
 
 void Dialog::on_usbConnectBtn_clicked()
