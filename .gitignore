@@ -20,6 +20,8 @@ Info_Mac.plist
 /.ffmpegbuild
 /aqtinstall.log
 *.mov
+# AI 工作指南（仅本地维护，不入库）
+/AGENTS.md
 
 # 测试探针的本地产物
 .rectest/out/
