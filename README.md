@@ -19,8 +19,6 @@ Based on barry-ran/QtScrcpy v4.1.1, this fork adds:
 - 🔊 **One-key audio forwarding** — the three legacy sndcpy buttons (install/start/stop, already broken on Android 14) are replaced by a single checkbox: the device audio is captured natively by the scrcpy server (playback capture, raw PCM 48 kHz/2 ch) and played on the PC in real time. No app install or on-device confirmation needed.
 - 🎬 **Screen recording with sound (MP4/MOV/MKV)** — a record button on the floating toolbar, decoupled from the mirroring session: start/stop anytime, each recording is an independent file. Video H.264 + audio AAC (PCM encoded on the fly) muxed into a standard MP4 track; supports mid-session recording start; ships proper color metadata (BT.601 colr box) so players render colors correctly.
 
-Technical details and build notes: see [AGENTS.md](AGENTS.md).
-
 ---
 
 QtScrcpy supports displaying and controlling Android devices via USB or over network. It does NOT require root privileges.
